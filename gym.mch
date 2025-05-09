@@ -33,13 +33,15 @@ INITIALISATION
     aluno:={} || prof:={} || treino:={} || exercicio:={}
     
 OPERATIONS
-    
+     addprof(pp) = 
+        PRE pp : PROF 
+        THEN prof := prof \/ {pp} 
+        END;
+
     addaluno(aa,pp) = 
-        PRE aa : ALUNO & pp : PROF & aa /: dom(alunode)
+        PRE aa : ALUNO & pp : prof & aa /: dom(alunode)
         THEN alunode := alunode \/ {aa |-> pp} ||
                     aluno := aluno \/ {aa} ||
                     prof := prof \/ {pp} 
         END
-
 END
-
