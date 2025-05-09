@@ -1,39 +1,53 @@
-/* Gym
+/* Gymteste2
  * Author: Daniel
- * Creation date: 08/05/2025
+ * Creation date: 09/05/2025
+ */
+/* Gymteste
+ * Author: Daniel
+ * Creation date: 09/05/2025
  */
 MACHINE Gym
 
 CONSTANTS
-    dia
+    dia, qtd
 
 SETS
-    ALUNO; PROF; TREINO; EXERCICIO; QTD;
-    DIA = {se,te,qua,qui,sex,sa,do}
-    
+    ALUNO; PROF; TREINO ; EXERCICIO; 
+    DIA = {se,te,qua,qui,sex,sa,do} ;
+    QTD = {qtd1}
+     
 PROPERTIES
-    dia <: DIA    
+    dia <: DIA &
+    qtd <: QTD 
 
 VARIABLES
-    alunode, alunotreino, treinodia, treinoex, exqtd//, treinoprof
+    alunode, alunotreino, aluno, prof, treino, exercicio, treinoprof, treinodia, treinoex, exqtd
 
 INVARIANT
-    dia <: DIA &   
-    alunode :          ALUNO +-> PROF &
-    alunotreino :     ALUNO <-> TREINO &
-    //treinoprof :       TREINO --> PROF &
-    treinodia :        TREINO <-> DIA &
-    treinoex :         TREINO <-> EXERCICIO &
-    exqtd :             EXERCICIO  <-> QTD
+    aluno <: ALUNO &
+    treino <: TREINO &
+    prof <: PROF &
+    exercicio <: EXERCICIO &
+    alunode :          aluno --> prof &
+    alunotreino :     aluno <-> treino &
+    treinoprof :       treino --> prof &
+    treinodia :        treino <-> dia &
+    treinoex :         treino <-> exercicio &
+    exqtd :             exercicio  <-> qtd
 
 INITIALISATION
-    alunode:={} || alunotreino:={} || treinodia:={} || treinoex:={} || exqtd:={} //|| treinoprof:={} 
+    alunode:={} || alunotreino:={} || treinoprof:={} || treinodia:={} ||
+    treinoex:={} || exqtd:={} ||
+    aluno:={} || prof:={} || treino:={} || exercicio:={}
     
 OPERATIONS
     
-    addaluno(aa,pf) = 
-        PRE aa : ALUNO & pf : PROF & alunode \/ {aa |-> pf} : ALUNO +-> PROF
-        THEN alunode := alunode \/ {aa |-> pf}
+    addaluno(aa,pp) = 
+        PRE aa : ALUNO & pp : PROF & aa /: dom(alunode)
+        THEN alunode := alunode \/ {aa |-> pp} ||
+                    aluno := aluno \/ {aa} ||
+                    prof := prof \/ {pp} 
         END
 
 END
+
