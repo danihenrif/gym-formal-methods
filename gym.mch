@@ -1,11 +1,3 @@
-/* Gymteste2
- * Author: Daniel
- * Creation date: 09/05/2025
- */
-/* Gymteste
- * Author: Daniel
- * Creation date: 09/05/2025
- */
 MACHINE Gym
 
 CONSTANTS
