@@ -25,7 +25,13 @@ INVARIANT
     treinoprof :       treino --> prof &
     treinodia :        treino <-> dia &
     treinoex :         treino <-> exercicio &
-    exqtd :             exercicio  <-> qtd
+    exqtd :             exercicio  <-> qtd &
+    
+    //se tem o mesmo treino tem q ter o mesmo prof
+    !(tt, al1, al2) . 
+    (tt : treino & al1:aluno & al2 : aluno &     
+    al1 : alunotreino~[{tt}] & al2 : alunotreino~[{tt}]  
+    => alunode[{al1}] = alunode[{al2}]) 
 
 INITIALISATION
     alunode:={} || alunotreino:={} || treinoprof:={} || treinodia:={} ||
@@ -41,7 +47,17 @@ OPERATIONS
     addaluno(aa,pp) = 
         PRE aa : ALUNO & pp : prof & aa /: dom(alunode)
         THEN alunode := alunode \/ {aa |-> pp} ||
-                    aluno := aluno \/ {aa} ||
-                    prof := prof \/ {pp} 
+                    aluno := aluno \/ {aa}
+        END;
+    
+    aa <-- consultaralunos(pp) = 
+        PRE pp : PROF
+        THEN aa := alunode~[{pp}]
+        END;
+    
+    aa <-- consultaralunossemtreino(pp) = 
+        PRE pp : PROF
+        THEN aa := alunode~[{pp}] - dom(alunotreino)
         END
+   
 END
