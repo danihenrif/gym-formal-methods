@@ -1,23 +1,21 @@
-/* Gym
- * Author: daniel
- * Creation date: 11/05/2025
- */
 MACHINE Gym
 
-CONSTANTS
-    dia, qtd
 
 SETS
     ALUNO; PROF; TREINO ; EXERCICIO; 
-    DIA = {se,te,qua,qui,sex,sa,do} ;
-    QTD = {qtd1}
+    DIA = {se,te,qua,qui,sex,sa,do};
+    QTD = {qtd1}; STATUS = {atv, intv}
+
+CONSTANTS
+    dia, qtd, status
      
 PROPERTIES
     dia <: DIA &
-    qtd <: QTD 
+    qtd <: QTD  & 
+    status = {atv, intv}
 
 VARIABLES
-    alunode, alunotreino, treinoprof, treinodia, treinoex, exqtd,
+    alunode, alunotreino, treinoprof, treinodia, treinoex, exqtd, alunostatus,
     aluno, prof, treino, exercicio
 
 INVARIANT
@@ -26,6 +24,7 @@ INVARIANT
     prof <: PROF &
     exercicio <: EXERCICIO &
     alunode :          aluno --> prof &
+    alunostatus :    aluno --> status & 
     alunotreino :     aluno <-> treino &
     treinoprof :       treino --> prof &
     treinodia :        treino <-> dia &
@@ -39,20 +38,26 @@ INVARIANT
     => alunode[{al1}] = alunode[{al2}]) 
 
 INITIALISATION
-    alunode:={} || alunotreino:={} || treinoprof:={} || treinodia:={} ||
+    alunode:={} || alunotreino:={} || treinoprof:={} || treinodia:={} || alunostatus:={} ||
     treinoex:={} || exqtd:={} ||
     aluno:={} || prof:={} || treino:={} || exercicio:={}
     
 OPERATIONS
     addprof(pp) = 
-        PRE pp : PROF 
-        THEN prof := prof \/ {pp} 
+        PRE pp : PROF
+        THEN prof := prof \/ {pp}
         END;
 
+
     addaluno(aa,pp) = 
-        PRE aa : ALUNO & pp : prof & aa /: dom(alunode)
+        PRE aa : ALUNO & pp : prof & aa /: dom(alunode) &
+                 // saber a causa                
+                alunostatus \/ {aa |-> atv} : aluno \/ {aa} --> status 
+                // saber a causa
         THEN alunode := alunode \/ {aa |-> pp} ||
                     aluno := aluno \/ {aa}
+                    ||
+                    alunostatus := alunostatus \/ {aa |-> atv} 
         END;
     
     addtreinoprof(tt,pp) = 
@@ -62,7 +67,7 @@ OPERATIONS
         END;
     
     addorchangediatreino(tt,dd) = 
-        PRE tt : treino & dd : dia
+        PRE tt : treino & dd : DIA 
         THEN IF card(treinodia[{tt}]) < 1
                         THEN treinodia := treinodia \/ {tt |-> dd}
                         ELSE treinodia := treinodia <+ {tt |-> dd}
