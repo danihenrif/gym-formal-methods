@@ -1,3 +1,7 @@
+/* Gym
+ * Author: daniel
+ * Creation date: 11/05/2025
+ */
 MACHINE Gym
 
 CONSTANTS
@@ -40,7 +44,7 @@ INITIALISATION
     aluno:={} || prof:={} || treino:={} || exercicio:={}
     
 OPERATIONS
-     addprof(pp) = 
+    addprof(pp) = 
         PRE pp : PROF 
         THEN prof := prof \/ {pp} 
         END;
@@ -58,7 +62,7 @@ OPERATIONS
         END;
     
     addorchangediatreino(tt,dd) = 
-        PRE tt : treino & dd : DIA 
+        PRE tt : treino & dd : dia
         THEN IF card(treinodia[{tt}]) < 1
                         THEN treinodia := treinodia \/ {tt |-> dd}
                         ELSE treinodia := treinodia <+ {tt |-> dd}
