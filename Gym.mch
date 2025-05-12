@@ -15,21 +15,24 @@ PROPERTIES
     status = {atv, intv}
 
 VARIABLES
-    alunode, alunotreino, treinoprof, treinodia, treinoex, exqtd, alunostatus,
-    aluno, prof, treino, exercicio
+    alunode, alunotreino, treinoprof, treinodia, treinoex, alunostatus,
+    aluno, prof, treino, exercicio, series, rep
 
 INVARIANT
+    series : FIN(NAT)&
+    rep : FIN(NAT) &
+
     aluno <: ALUNO &
     treino <: TREINO &
     prof <: PROF &
     exercicio <: EXERCICIO &
+
     alunode :          aluno --> prof &
-    alunostatus :    aluno --> status & 
-    alunotreino :     aluno <-> treino &
+    alunostatus :      aluno --> status & 
+    alunotreino :      aluno <-> treino &
     treinoprof :       treino --> prof &
     treinodia :        treino <-> dia &
-    treinoex :         treino <-> exercicio &
-    exqtd :             exercicio  <-> qtd &
+    treinoex :         treino <-> exercicio * series * rep &
     
     //se tem o mesmo treino tem q ter o mesmo prof
     !(tt, al1, al2) . 
@@ -38,10 +41,10 @@ INVARIANT
     => alunode[{al1}] = alunode[{al2}]) 
 
 INITIALISATION
-    alunode:={} || alunotreino:={} || treinoprof:={} || treinodia:={} || alunostatus:={} ||
-    treinoex:={} || exqtd:={} ||
-    aluno:={} || prof:={} || treino:={} || exercicio:={}
-    
+    alunode:={} || alunotreino:={} || treinoprof:={} || 
+    treinodia:={} || alunostatus:={} || treinoex:={} ||
+    aluno:={} || prof:={} || treino:={} || exercicio:={} || 
+    series:={} || rep:={}
 OPERATIONS
     addprof(pp) = 
         PRE pp : PROF
@@ -74,10 +77,9 @@ OPERATIONS
                     END
         END;
 
-    addexerciciotreino(ex,tt) =
-        PRE ex : EXERCICIO & tt : treino
-        THEN treinoex := treinoex \/ {tt |-> ex} ||
-                    exercicio := exercicio \/ {ex}
+    addexerciciotreino(ex,tt,ss,rp) =
+        PRE ex : EXERCICIO & tt : treino & ss:1..10 & rp:1..100
+        THEN treinoex := treinoex \/ {tt |-> {ex} * {ss} * {rp}}
         END;
 
     addalunotreino(aa,tt) = 
