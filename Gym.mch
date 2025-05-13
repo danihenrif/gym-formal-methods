@@ -1,38 +1,34 @@
 MACHINE Gym
 
-
 SETS
     ALUNO; PROF; TREINO ; EXERCICIO; 
     DIA = {se,te,qua,qui,sex,sa,do};
-    QTD = {qtd1}; STATUS = {atv, intv}
+    STATUS = {atv, intv} 
 
 CONSTANTS
-    dia, qtd, status
+    dia,series,reps
      
 PROPERTIES
     dia <: DIA &
-    qtd <: QTD  & 
-    status = {atv, intv}
+    series = 1..3 &
+    reps = 1..20
 
 VARIABLES
     alunode, alunotreino, treinoprof, treinodia, treinoex, alunostatus,
-    aluno, prof, treino, exercicio, series, rep
+    aluno, prof, treino, exercicio
 
 INVARIANT
-    series : FIN(NAT)&
-    rep : FIN(NAT) &
-
     aluno <: ALUNO &
     treino <: TREINO &
     prof <: PROF &
     exercicio <: EXERCICIO &
 
     alunode :          aluno --> prof &
-    alunostatus :      aluno --> status & 
+    alunostatus :      aluno --> STATUS & 
     alunotreino :      aluno <-> treino &
     treinoprof :       treino --> prof &
     treinodia :        treino <-> dia &
-    treinoex :         treino <-> exercicio * series * rep &
+    treinoex :         treino <-> exercicio * series * reps &
     
     //se tem o mesmo treino tem q ter o mesmo prof
     !(tt, al1, al2) . 
@@ -43,24 +39,22 @@ INVARIANT
 INITIALISATION
     alunode:={} || alunotreino:={} || treinoprof:={} || 
     treinodia:={} || alunostatus:={} || treinoex:={} ||
-    aluno:={} || prof:={} || treino:={} || exercicio:={} || 
-    series:={} || rep:={}
+    aluno:={} || prof:={} || treino:={} || exercicio:={}
 OPERATIONS
-    addprof(pp) = 
+    
+addprof(pp) = 
         PRE pp : PROF
         THEN prof := prof \/ {pp}
         END;
 
-
     addaluno(aa,pp) = 
         PRE aa : ALUNO & pp : prof & aa /: dom(alunode) &
                  // saber a causa                
-                alunostatus \/ {aa |-> atv} : aluno \/ {aa} --> status 
+            alunostatus \/ {aa |-> atv} : aluno \/ {aa} --> STATUS 
                 // saber a causa
         THEN alunode := alunode \/ {aa |-> pp} ||
-                    aluno := aluno \/ {aa}
-                    ||
-                    alunostatus := alunostatus \/ {aa |-> atv} 
+            aluno := aluno \/ {aa}     ||
+            alunostatus := alunostatus \/ {aa |-> atv} 
         END;
     
     addtreinoprof(tt,pp) = 
@@ -70,20 +64,21 @@ OPERATIONS
         END;
     
     addorchangediatreino(tt,dd) = 
-        PRE tt : treino & dd : DIA 
-        THEN IF card(treinodia[{tt}]) < 1
-                        THEN treinodia := treinodia \/ {tt |-> dd}
-                        ELSE treinodia := treinodia <+ {tt |-> dd}
+        PRE tt : treino & dd : dia 
+        THEN IF card(treinodia[{tt}]) = 0
+                THEN treinodia := treinodia \/ {tt |-> dd}
+            ELSE treinodia := treinodia <+ {tt |-> dd}
                     END
         END;
 
     addexerciciotreino(ex,tt,ss,rp) =
-        PRE ex : EXERCICIO & tt : treino & ss:1..10 & rp:1..100
-        THEN treinoex := treinoex \/ {tt |-> {ex} * {ss} * {rp}}
+        PRE ex : EXERCICIO & tt : treino & ss : series & rp : reps
+        THEN treinoex := treinoex \/ {tt |-> (ex,ss,rp)} || 
+             exercicio:= exercicio \/ {ex}
         END;
 
     addalunotreino(aa,tt) = 
-        PRE aa: aluno & tt : TREINO & treinoprof[{tt}] = alunode[{aa}]
+        PRE aa: aluno & tt : treino & treinoprof[{tt}] = alunode[{aa}] 
         THEN alunotreino := alunotreino \/ {aa |-> tt}
         END;
     
