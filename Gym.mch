@@ -93,8 +93,7 @@ addAluno(aa,pp) =
     END;
      
 addTreinoProf(tt,pp) = 
-    PRE 
-        pp : prof
+    PRE pp : prof
         & tt : TREINO
         & tt /: dom(treinoProf)
     THEN 
@@ -192,6 +191,7 @@ tt <-- consultarDetalhesTreinosDoDia(aa, dd) =
         aa: aluno
         & dd: dia
         & treinoAluno~[{aa |-> dd}] /= {}
+        & alunoStatus[{aa}] = {ativo}
     THEN
         tt := treinoExercicio[treinoAluno~[{aa |-> dd}]]
     END;
