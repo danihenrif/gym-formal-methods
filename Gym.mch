@@ -49,9 +49,11 @@ INVARIANT
     (al1,dd1) : ran(treinoAluno) & 
     (al2,dd2):ran(treinoAluno) & 
     treinoAluno~[{al1|->dd1}] = treinoAluno~[{al2|->dd2}]  
-    => alunoProf[{al1}] = alunoProf[{al2}])
+    => alunoProf[{al1}] = alunoProf[{al2}])&
 
-    & !(tt, aa, dd).(tt: treino & aa : aluno & dd: dia & (tt |-> (aa, dd)) : treinoAluno => treinoProf(tt) = alunoProf(aa))
+    !(tt, aa, dd).(tt: treino & aa : aluno & dd: dia 
+    & (tt |-> (aa, dd)) : treinoAluno =>
+    treinoProf(tt) = alunoProf(aa))
 
 
 
@@ -119,6 +121,7 @@ changeDiaTreino(tt, aa, ddAnterior, ddNovo) =
         & ddNovo : dia 
         & ddAnterior /= ddNovo 
         & (tt |-> (aa, ddAnterior)) : treinoAluno //o treino com a data antiga deve existir
+        & alunoStatus[{aa}] = {ativo}
     THEN 
         treinoAluno := (treinoAluno - {tt |-> (aa, ddAnterior)}) \/ {tt |-> (aa, ddNovo)}
     END;
@@ -159,17 +162,14 @@ atualizarPagamento(aa) =
         alunoStatus := alunoStatus <+ {aa |-> ativo}
     END;
 
-cancelarMatricula(aa) =
+inativarMatricula(aa) =
     PRE
         aa : aluno
         & alunoStatus[{aa}] = {ativo}
-        & alunoStatus \/ {aa |-> inativo} : aluno \/ {aa} --> STATUS
-        & alunoStatus \/ {aa |-> inativo} : aluno --> STATUS
     THEN
-        alunoStatus := alunoStatus \/ {aa |-> inativo}
+        alunoStatus := alunoStatus <+ {aa |-> inativo}
     END;
-
-    
+  
 aa <-- consultarAlunos(pp) = 
     PRE 
         pp : PROF 
@@ -178,7 +178,7 @@ aa <-- consultarAlunos(pp) =
         aa := alunoProf~[{pp}]
     END;
     
-tt <-- consultarTreinosPorAlunoEDia(aa, dd) =
+tt <-- consultarTreinosDoDia(aa, dd) =
     PRE
         aa: aluno
         & dd: dia
@@ -186,7 +186,17 @@ tt <-- consultarTreinosPorAlunoEDia(aa, dd) =
     THEN
         tt := treinoAluno~[{aa |-> dd}]
     END;
+
+tt <-- consultarDetalhesTreinosDoDia(aa, dd) =
+    PRE
+        aa: aluno
+        & dd: dia
+        & treinoAluno~[{aa |-> dd}] /= {}
+    THEN
+        tt := treinoExercicio[treinoAluno~[{aa |-> dd}]]
+    END;
     
+  
 tt <-- consultarTreinosPorAluno(aa) =
     PRE
         aa: aluno
@@ -196,9 +206,17 @@ tt <-- consultarTreinosPorAluno(aa) =
     END;
     
 aa <-- consultarAlunosSemTreino = 
-    BEGIN 
+    PRE 
+        aluno /= {}   
+    THEN
         aa := aluno - dom(ran(treinoAluno))
-    END
+    END;
 
+aa <-- consultarAlunosdeProfSemTreino(pp) = 
+    PRE 
+        pp : prof & alunoProf~[{pp}] /= {}
+    THEN 
+        aa := alunoProf~[{pp}] - dom(ran(treinoAluno))
+    END
 
 END
