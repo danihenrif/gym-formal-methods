@@ -78,6 +78,8 @@ addProf(pp) =
         prof := prof \/ {pp}
     END;
 
+//Excluir professor ?? Exclui os treinos associados a ele ? os exercicios saem dos alunos?
+
 addAluno(aa,pp) = 
     PRE 
         aa : ALUNO 
@@ -91,6 +93,8 @@ addAluno(aa,pp) =
         || alunoStatus := alunoStatus \/ {aa |-> ativo}
         || alunoPresente := alunoPresente \/ {aa |-> ausente}
     END;
+
+//Excluir aluno
      
 addTreinoProf(tt,pp) = 
     PRE pp : prof
@@ -111,6 +115,8 @@ addTreinoAluno(aa,tt,dd) =
     THEN 
         treinoAluno := treinoAluno \/ {tt |-> (aa,dd)} 
     END;
+
+//Excluir treino aluno
 
 changeDiaTreino(tt, aa, ddAnterior, ddNovo) =
     PRE 
@@ -136,6 +142,11 @@ addExercicioTreino(ex,tt,ss,rp) =
         || exercicio:= exercicio \/ {ex}
     END;
 
+//mudar quantidade de repetições e séries de um exercício de determinado treino
+
+
+
+//PRESENTE E AUSENTE INFLUENCIAM EM QUAIS OUTROS ESTADOS DA MÁQUINA ? EM QUAIS OUTRAS OPERAÇÕES ?
 checkIn(aa) =
     PRE
         aa: aluno
@@ -217,6 +228,15 @@ aa <-- consultarAlunosdeProfSemTreino(pp) =
         pp : prof & alunoProf~[{pp}] /= {}
     THEN 
         aa := alunoProf~[{pp}] - dom(ran(treinoAluno))
+    END;
+
+//Como se trata de conjuntos se um dois exercícios tiverem a mesma quantidade de séries
+//Não somará corretamente.
+ss <-- consultarQuantSeriesTreino(tt) =
+    PRE
+        tt : treino
+    THEN
+        ss := SIGMA(xx).(xx : ran(treinoExercicio[{tt}]) | xx)
     END
 
 END
