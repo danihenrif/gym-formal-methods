@@ -43,15 +43,16 @@ INVARIANT
     & treinoExercicio : treino <-> exercicio * series * repeticoes 
     & alunoPresente : aluno --> PRESENTE
 
-    //se tem o mesmo treino tem q ter o mesmo prof
+    // Se dois alunos diferentes possuem exatamente o mesmo treino, então esses alunos devem estar associados ao mesmo professor.
     & !(al1, al2, dd1, dd2) . 
     (al1:aluno & al2 : aluno & dd1:dia & dd2:dia & al1 /= al2 & 
     (al1,dd1) : ran(treinoAluno) & 
     (al2,dd2):ran(treinoAluno) & 
     treinoAluno~[{al1|->dd1}] = treinoAluno~[{al2|->dd2}]  
-    => alunoProf[{al1}] = alunoProf[{al2}])&
+    => alunoProf[{al1}] = alunoProf[{al2}])
 
-    !(tt, aa, dd).(tt: treino & aa : aluno & dd: dia 
+    // O professor associado ao treino tt deve ser o mesmo professor associado ao aluno aa
+    & !(tt, aa, dd).(tt: treino & aa : aluno & dd: dia 
     & (tt |-> (aa, dd)) : treinoAluno =>
     treinoProf(tt) = alunoProf(aa))
 
@@ -78,7 +79,18 @@ addProf(pp) =
         prof := prof \/ {pp}
     END;
 
-//Excluir professor ?? Exclui os treinos associados a ele ? os exercicios saem dos alunos?
+deleteProf(pp) =
+    PRE 
+        pp: prof
+    THEN
+        ANY newProf WHERE
+            newProf: prof & newProf /= pp
+        THEN
+            alunoProf := alunoProf <+ (alunoProf~[{pp}] * {newProf})
+            || treinoProf := treinoProf <+ (treinoProf~[{pp}] * {newProf})
+            || prof := prof - {pp}
+        END
+    END;
 
 addAluno(aa,pp) = 
     PRE 
@@ -94,7 +106,17 @@ addAluno(aa,pp) =
         || alunoPresente := alunoPresente \/ {aa |-> ausente}
     END;
 
-//Excluir aluno
+deleteAluno(aa) =
+    PRE
+        aa : aluno
+        & alunoStatus[{aa}] = {inativo}
+    THEN
+        aluno := aluno - {aa}
+        || alunoProf := {aa} <<| alunoProf
+        || treinoAluno := treinoAluno |>> ({aa} * dia)
+        || alunoStatus := {aa} <<| alunoStatus
+        || alunoPresente := {aa} <<| alunoPresente
+    END;
      
 addTreinoProf(tt,pp) = 
     PRE pp : prof
@@ -110,13 +132,21 @@ addTreinoAluno(aa,tt,dd) =
         aa : aluno 
         & tt : treino 
         & dd : dia 
-        & (tt |-> (aa, dd)) /: treinoAluno //o treino nao existe
+        & (tt |-> (aa, dd)) /: treinoAluno
         & treinoProf[{tt}] = alunoProf[{aa}]
     THEN 
         treinoAluno := treinoAluno \/ {tt |-> (aa,dd)} 
     END;
 
-//Excluir treino aluno
+deleteTreinoAluno(tt, aa, dd) =
+    PRE
+        tt: treino
+        & aa: aluno
+        & dd: dia
+        & (tt |-> (aa, dd)) : treinoAluno
+    THEN
+        treinoAluno := treinoAluno - {tt |-> (aa, dd)}
+    END;
 
 changeDiaTreino(tt, aa, ddAnterior, ddNovo) =
     PRE 
@@ -125,7 +155,7 @@ changeDiaTreino(tt, aa, ddAnterior, ddNovo) =
         & ddAnterior : dia 
         & ddNovo : dia 
         & ddAnterior /= ddNovo 
-        & (tt |-> (aa, ddAnterior)) : treinoAluno //o treino com a data antiga deve existir
+        & (tt |-> (aa, ddAnterior)) : treinoAluno
         & alunoStatus[{aa}] = {ativo}
     THEN 
         treinoAluno := (treinoAluno - {tt |-> (aa, ddAnterior)}) \/ {tt |-> (aa, ddNovo)}
@@ -142,11 +172,32 @@ addExercicioTreino(ex,tt,ss,rp) =
         || exercicio:= exercicio \/ {ex}
     END;
 
-//mudar quantidade de repetições e séries de um exercício de determinado treino
+deleteExercicioTreino(tt, ex, ss, rp) =
+    PRE
+        tt : treino
+        & ex : exercicio
+        & ss : series 
+        & rp : repeticoes
+        & (tt |-> (ex, ss, rp)) : treinoExercicio
+    THEN
+        treinoExercicio := treinoExercicio - {tt |-> (ex, ss, rp)}
+    END;
 
+updateExercicioTreino(tt, ex, newSs, newRp) =
+    PRE
+        tt : treino
+        & ex : exercicio
+        & newSs : series
+        & newRp : repeticoes
+        & #(oldSs,oldRp).(oldSs : series & oldRp : repeticoes & (tt |-> (ex,oldSs,oldRp)) : treinoExercicio)
+    THEN
+        ANY oldSs, oldRp WHERE
+            oldSs : series & oldRp : repeticoes & (tt |-> (ex,oldSs,oldRp)) : treinoExercicio
+        THEN
+            treinoExercicio := (treinoExercicio - {tt |-> (ex,oldSs,oldRp)}) \/ {tt |-> (ex,newSs,newRp)}
+        END
+    END;
 
-
-//PRESENTE E AUSENTE INFLUENCIAM EM QUAIS OUTROS ESTADOS DA MÁQUINA ? EM QUAIS OUTRAS OPERAÇÕES ?
 checkIn(aa) =
     PRE
         aa: aluno
@@ -230,13 +281,11 @@ aa <-- consultarAlunosdeProfSemTreino(pp) =
         aa := alunoProf~[{pp}] - dom(ran(treinoAluno))
     END;
 
-//Como se trata de conjuntos se um dois exercícios tiverem a mesma quantidade de séries
-//Não somará corretamente.
 ss <-- consultarQuantSeriesTreino(tt) =
     PRE
         tt : treino
     THEN
-        ss := SIGMA(xx).(xx : ran(treinoExercicio[{tt}]) | xx)
+        ss := SIGMA(ex, ss, rr).(ex : exercicio & ss : series & rr : repeticoes & (tt |-> (ex, ss, rr)) : treinoExercicio | ss)
     END
 
 END
