@@ -16,8 +16,8 @@ CONSTANTS
      
 PROPERTIES
     dia <: DIA
-    & series = 1..3
-    & repeticoes = 1..20
+    & series = 3..5
+    & repeticoes = 10..20
 
 VARIABLES  
     aluno,
@@ -81,7 +81,7 @@ addProf(pp) =
 
 deleteProf(pp) =
     PRE 
-        pp: prof
+        pp: prof & #(pp2).(pp2 : prof & pp2 /= pp)
     THEN
         ANY newProf WHERE
             newProf: prof & newProf /= pp
