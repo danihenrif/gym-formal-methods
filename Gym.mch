@@ -117,6 +117,17 @@ deleteAluno(aa) =
         || alunoStatus := {aa} <<| alunoStatus
         || alunoPresente := {aa} <<| alunoPresente
     END;
+
+changeAlunoProf(aa, pp) =
+    PRE
+        aa: aluno
+        & pp: prof
+        & alunoStatus[{aa}] = {ativo}
+        & alunoProf[{aa}] /= {pp}
+    THEN
+        treinoAluno := treinoAluno |>> ({aa} * dia)
+        || alunoProf := alunoProf <+ {aa |-> pp}
+    END;
      
 addTreinoProf(tt,pp) = 
     PRE pp : prof
