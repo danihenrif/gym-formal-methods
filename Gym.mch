@@ -55,8 +55,14 @@ INVARIANT
     & !(tt, aa, dd).(tt: treino & aa : aluno & dd: dia 
     & (tt |-> (aa, dd)) : treinoAluno =>
     treinoProf(tt) = alunoProf(aa))
-
-
+    
+    // Um exercício só pode estar presente no máximo uma vez em cada treino
+    & !(tt, ex, ss1, ss2, rp1, rp2).(tt: treino & ex: exercicio & 
+       ss1: series & ss2: series & 
+       rp1: repeticoes & rp2: repeticoes & 
+       (tt |-> (ex, ss1, rp1)) : treinoExercicio & 
+       (tt |-> (ex, ss2, rp2)) : treinoExercicio => 
+       (ss1 = ss2 & rp1 = rp2))
 
 INITIALISATION  
     alunoProf:={} 
@@ -81,7 +87,8 @@ addProf(pp) =
 
 deleteProf(pp) =
     PRE 
-        pp: prof & #(pp2).(pp2 : prof & pp2 /= pp)
+        pp: prof 
+        & #(pp2).(pp2 : prof & pp2 /= pp)
     THEN
         ANY newProf WHERE
             newProf: prof & newProf /= pp
@@ -145,6 +152,7 @@ addTreinoAluno(aa,tt,dd) =
         & dd : dia 
         & (tt |-> (aa, dd)) /: treinoAluno
         & treinoProf[{tt}] = alunoProf[{aa}]
+        & alunoStatus(aa) /= inativo
     THEN 
         treinoAluno := treinoAluno \/ {tt |-> (aa,dd)} 
     END;
@@ -178,6 +186,7 @@ addExercicioTreino(ex,tt,ss,rp) =
         & tt : treino 
         & ss : series 
         & rp : repeticoes
+        & not(#(ss0,rp0).(ss0 : series & rp0 : repeticoes & (tt |-> (ex, ss0, rp0)) : treinoExercicio))
     THEN 
         treinoExercicio := treinoExercicio \/ {tt |-> (ex,ss,rp)}
         || exercicio:= exercicio \/ {ex}
