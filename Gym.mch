@@ -33,8 +33,8 @@ VARIABLES
 
 INVARIANT
     aluno <: ALUNO
-    & treino <: TREINO
     & prof <: PROF
+    & treino <: TREINO
     & exercicio <: EXERCICIO
     & alunoProf : aluno --> prof
     & alunoStatus : aluno --> STATUS 
@@ -42,6 +42,8 @@ INVARIANT
     & treinoAluno : treino <-> aluno * dia 
     & treinoExercicio : treino <-> exercicio * series * repeticoes 
     & alunoPresente : aluno --> PRESENTE
+
+    & alunoPresente~[{presente}] /\ alunoStatus~[{inativo}] = {}
 
     // Se dois alunos diferentes possuem exatamente o mesmo treino, então esses alunos devem estar associados ao mesmo professor.
     & !(al1, al2, dd1, dd2) . 
@@ -81,6 +83,7 @@ OPERATIONS
 addProf(pp) = 
     PRE 
         pp : PROF
+        & pp /: prof
     THEN
         prof := prof \/ {pp}
     END;
@@ -88,7 +91,7 @@ addProf(pp) =
 deleteProf(pp) =
     PRE 
         pp: prof 
-        & #(pp2).(pp2 : prof & pp2 /= pp)
+        & card(prof - {pp}) > 0
     THEN
         ANY newProf WHERE
             newProf: prof & newProf /= pp
@@ -106,6 +109,7 @@ addAluno(aa,pp) =
         & aa /: dom(alunoProf)
         & aa /: dom(alunoStatus)
         & alunoPresente \/ {aa |-> ausente} : aluno \/ {aa} --> PRESENTE
+        & (alunoPresente \/ {aa |-> ausente})~[{presente}] /\ (alunoStatus \/ {aa |-> ativo})~[{inativo}] = {}
     THEN 
         alunoProf := alunoProf \/ {aa |-> pp}
         || aluno := aluno \/ {aa}
@@ -223,6 +227,7 @@ checkIn(aa) =
         aa: aluno
         & alunoStatus[{aa}] = {ativo}
         & alunoPresente[{aa}] = {ausente}
+        & (alunoPresente <+ {aa |-> presente})~[{presente}] /\ alunoStatus~[{inativo}] = {}
     THEN
         alunoPresente := alunoPresente <+ {aa |-> presente}
     END;
@@ -247,6 +252,7 @@ inativarMatricula(aa) =
     PRE
         aa : aluno
         & alunoStatus[{aa}] = {ativo}
+        & alunoPresente~[{presente}] /\ (alunoStatus <+ {aa |-> inativo})~[{inativo}] = {}
     THEN
         alunoStatus := alunoStatus <+ {aa |-> inativo}
     END;
@@ -296,7 +302,8 @@ aa <-- consultarAlunosSemTreino =
 
 aa <-- consultarAlunosdeProfSemTreino(pp) = 
     PRE 
-        pp : prof & alunoProf~[{pp}] /= {}
+        pp : prof 
+        & alunoProf~[{pp}] /= {}
     THEN 
         aa := alunoProf~[{pp}] - dom(ran(treinoAluno))
     END;
@@ -306,6 +313,175 @@ ss <-- consultarQuantSeriesTreino(tt) =
         tt : treino
     THEN
         ss := SIGMA(ex, ss, rr).(ex : exercicio & ss : series & rr : repeticoes & (tt |-> (ex, ss, rr)) : treinoExercicio | ss)
+    END;
+
+/* Operações de Consulta para verificar se operações podem ser chamadas */
+
+canAdd <-- canAddProf(pp) =
+    PRE
+        pp : PROF
+    THEN
+        canAdd := bool(pp : PROF & pp /: prof)
+    END;
+
+canDel <-- canDeleteProf(pp) =
+    PRE
+        pp : PROF
+    THEN
+        canDel := bool(pp : prof & #(pp2).(pp2 : prof & pp2 /= pp))
+    END;
+
+canAdd <-- canAddAluno(aa, pp) =
+    PRE
+        aa : ALUNO & pp : PROF
+    THEN
+        canAdd := bool(aa : ALUNO & pp : prof & aa /: dom(alunoProf) & aa /: dom(alunoStatus) & 
+                      (alunoPresente \/ {aa |-> ausente})~[{presente}] /\ (alunoStatus \/ {aa |-> ativo})~[{inativo}] = {})
+    END;
+
+canDel <-- canDeleteAluno(aa) =
+    PRE
+        aa : ALUNO
+    THEN
+        canDel := bool(aa : aluno & alunoStatus[{aa}] = {inativo})
+    END;
+
+canChange <-- canChangeAlunoProf(aa, pp) =
+    PRE
+        aa : ALUNO & pp : PROF
+    THEN
+        canChange := bool(aa : aluno & pp : prof & alunoStatus[{aa}] = {ativo} & alunoProf[{aa}] /= {pp})
+    END;
+
+canAdd <-- canAddTreinoProf(tt, pp) =
+    PRE
+        tt : TREINO & pp : PROF
+    THEN
+        canAdd := bool(pp : prof & tt : TREINO & tt /: dom(treinoProf))
+    END;
+
+canAdd <-- canAddTreinoAluno(aa, tt, dd) =
+    PRE
+        aa : ALUNO & tt : TREINO & dd : DIA
+    THEN
+        canAdd := bool(aa : aluno & tt : treino & dd : dia & (tt |-> (aa, dd)) /: treinoAluno & 
+                      treinoProf[{tt}] = alunoProf[{aa}] & alunoStatus(aa) /= inativo)
+    END;
+
+canDel <-- canDeleteTreinoAluno(tt, aa, dd) =
+    PRE
+        tt : TREINO & aa : ALUNO & dd : DIA
+    THEN
+        canDel := bool(tt : treino & aa : aluno & dd : dia & (tt |-> (aa, dd)) : treinoAluno)
+    END;
+
+canChange <-- canChangeDiaTreino(tt, aa, ddAnterior, ddNovo) =
+    PRE
+        tt : TREINO & aa : ALUNO & ddAnterior : DIA & ddNovo : DIA
+    THEN
+        canChange := bool(tt : treino & aa : aluno & ddAnterior : dia & ddNovo : dia & ddAnterior /= ddNovo & 
+                         (tt |-> (aa, ddAnterior)) : treinoAluno & alunoStatus[{aa}] = {ativo})
+    END;
+
+canAdd <-- canAddExercicioTreino(ex, tt, ss, rp) =
+    PRE
+        ex : EXERCICIO & tt : TREINO & ss : NAT & rp : NAT
+    THEN
+        canAdd := bool(ex : EXERCICIO & tt : treino & ss : series & rp : repeticoes & 
+                      not(#(ss0,rp0).(ss0 : series & rp0 : repeticoes & (tt |-> (ex, ss0, rp0)) : treinoExercicio)))
+    END;
+
+canDel <-- canDeleteExercicioTreino(tt, ex, ss, rp) =
+    PRE
+        tt : TREINO & ex : EXERCICIO & ss : NAT & rp : NAT
+    THEN
+        canDel := bool(tt : treino & ex : exercicio & ss : series & rp : repeticoes & 
+                      (tt |-> (ex, ss, rp)) : treinoExercicio)
+    END;
+
+canUpdate <-- canUpdateExercicioTreino(tt, ex, newSs, newRp) =
+    PRE
+        tt : TREINO & ex : EXERCICIO & newSs : NAT & newRp : NAT
+    THEN
+        canUpdate := bool(tt : treino & ex : exercicio & newSs : series & newRp : repeticoes & 
+                         #(oldSs,oldRp).(oldSs : series & oldRp : repeticoes & (tt |-> (ex,oldSs,oldRp)) : treinoExercicio))
+    END;
+
+canCheck <-- canCheckIn(aa) =
+    PRE
+        aa : ALUNO
+    THEN
+        canCheck := bool(aa : aluno & alunoStatus[{aa}] = {ativo} & alunoPresente[{aa}] = {ausente} & 
+                        (alunoPresente <+ {aa |-> presente})~[{presente}] /\ alunoStatus~[{inativo}] = {})
+    END;
+
+canCheck <-- canCheckOut(aa) =
+    PRE
+        aa : ALUNO
+    THEN
+        canCheck := bool(aa : aluno & alunoPresente[{aa}] = {presente})
+    END;
+
+canUpdate <-- canAtualizarPagamento(aa) =
+    PRE
+        aa : ALUNO
+    THEN
+        canUpdate := bool(aa : aluno & alunoStatus[{aa}] = {inativo})
+    END;
+
+canInativ <-- canInativarMatricula(aa) =
+    PRE
+        aa : ALUNO
+    THEN
+        canInativ := bool(aa : aluno & alunoStatus[{aa}] = {ativo} & 
+                         alunoPresente~[{presente}] /\ (alunoStatus <+ {aa |-> inativo})~[{inativo}] = {})
+    END;
+
+canConsult <-- canConsultarAlunos(pp) =
+    PRE
+        pp : PROF
+    THEN
+        canConsult := bool(pp : PROF & alunoProf~[{pp}] /= {})
+    END;
+
+canConsult <-- canConsultarTreinosDoDia(aa, dd) =
+    PRE
+        aa : ALUNO & dd : DIA
+    THEN
+        canConsult := bool(aa : aluno & dd : dia & treinoAluno~[{aa |-> dd}] /= {})
+    END;
+
+canConsult <-- canConsultarDetalhesTreinosDoDia(aa, dd) =
+    PRE
+        aa : ALUNO & dd : DIA
+    THEN
+        canConsult := bool(aa : aluno & dd : dia & treinoAluno~[{aa |-> dd}] /= {} & alunoStatus[{aa}] = {ativo})
+    END;
+
+canConsult <-- canConsultarTreinosPorAluno(aa) =
+    PRE
+        aa : ALUNO
+    THEN
+        canConsult := bool(aa : aluno & treinoAluno~[{aa} * dia] /= {})
+    END;
+
+canConsult <-- canConsultarAlunosSemTreino =
+    BEGIN
+        canConsult := bool(aluno /= {})
+    END;
+
+canConsult <-- canConsultarAlunosdeProfSemTreino(pp) =
+    PRE
+        pp : PROF
+    THEN
+        canConsult := bool(pp : prof & alunoProf~[{pp}] /= {})
+    END;
+
+canConsult <-- canConsultarQuantSeriesTreino(tt) =
+    PRE
+        tt : TREINO
+    THEN
+        canConsult := bool(tt : treino)
     END
 
 END
