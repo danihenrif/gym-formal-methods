@@ -7,17 +7,21 @@ SETS
     EXERCICIO; 
     DIA = {segunda, terca, quarta, quinta, sexta, sabado, domingo};
     STATUS = {ativo, inativo};
-    PRESENTE = {presente, ausente}
+    PRESENTE = {presente, ausente};
+    PLANO = {mensal, semestral, anual}
 
 CONSTANTS
     dia,
     series,
-    repeticoes
+    repeticoes,
+    duracaoPlano
      
 PROPERTIES
     dia <: DIA
     & series = 3..5
     & repeticoes = 10..20
+    & duracaoPlano : PLANO --> NAT
+    & duracaoPlano = {mensal |-> 31, semestral |-> 186, anual |-> 365}
 
 VARIABLES  
     aluno,
@@ -29,7 +33,10 @@ VARIABLES
     treinoAluno,
     treinoExercicio,
     alunoStatus,
-    alunoPresente
+    alunoPresente,
+    alunoPlano,
+    alunoVencimento,
+    diaAtual
 
 INVARIANT
     aluno <: ALUNO
@@ -42,8 +49,14 @@ INVARIANT
     & treinoAluno : treino <-> aluno * dia 
     & treinoExercicio : treino <-> exercicio * series * repeticoes 
     & alunoPresente : aluno --> PRESENTE
+    & alunoPlano : aluno --> PLANO
+    & alunoVencimento : aluno --> NAT
+    & diaAtual : NAT
 
     & alunoPresente~[{presente}] /\ alunoStatus~[{inativo}] = {}
+
+    // Alunos ativos devem ter vencimento futuro
+    & !(aa).(aa : aluno & alunoStatus(aa) = ativo => alunoVencimento(aa) >= diaAtual)
 
     // Se dois alunos diferentes possuem exatamente o mesmo treino, então esses alunos devem estar associados ao mesmo professor.
     & !(al1, al2, dd1, dd2) . 
@@ -77,6 +90,9 @@ INITIALISATION
     || treino:={} 
     || exercicio:={}
     || alunoPresente:={}
+    || alunoPlano:={}
+    || alunoVencimento:={}
+    || diaAtual:=0
 
 OPERATIONS
     
@@ -102,10 +118,11 @@ deleteProf(pp) =
         END
     END;
 
-addAluno(aa,pp) = 
+addAluno(aa,pp,plano) = 
     PRE 
         aa : ALUNO 
         & pp : prof 
+        & plano : PLANO
         & aa /: dom(alunoProf)
         & aa /: dom(alunoStatus)
         & alunoPresente \/ {aa |-> ausente} : aluno \/ {aa} --> PRESENTE
@@ -115,6 +132,8 @@ addAluno(aa,pp) =
         || aluno := aluno \/ {aa}
         || alunoStatus := alunoStatus \/ {aa |-> ativo}
         || alunoPresente := alunoPresente \/ {aa |-> ausente}
+        || alunoPlano := alunoPlano \/ {aa |-> plano}
+        || alunoVencimento := alunoVencimento \/ {aa |-> (diaAtual + duracaoPlano(plano))}
     END;
 
 deleteAluno(aa) =
@@ -127,6 +146,8 @@ deleteAluno(aa) =
         || treinoAluno := treinoAluno |>> ({aa} * dia)
         || alunoStatus := {aa} <<| alunoStatus
         || alunoPresente := {aa} <<| alunoPresente
+        || alunoPlano := {aa} <<| alunoPlano
+        || alunoVencimento := {aa} <<| alunoVencimento
     END;
 
 changeAlunoProf(aa, pp) =
@@ -240,23 +261,33 @@ checkOut(aa) =
         alunoPresente := alunoPresente <+ {aa |-> ausente}
     END;
 
-atualizarPagamento(aa) =
+atualizarPagamento(aa, novoPlano) =
     PRE
         aa: aluno
+        & novoPlano : PLANO
         & alunoStatus[{aa}] = {inativo}
     THEN
         alunoStatus := alunoStatus <+ {aa |-> ativo}
+        || alunoPlano := alunoPlano <+ {aa |-> novoPlano}
+        || alunoVencimento := alunoVencimento <+ {aa |-> (diaAtual + duracaoPlano(novoPlano))}
     END;
 
-inativarMatricula(aa) =
+passarDia =
+    BEGIN
+        diaAtual := diaAtual + 1
+        || alunoStatus := alunoStatus <+ ({aa | aa : aluno & alunoVencimento(aa) <= diaAtual} * {inativo})
+    END;
+
+renovarPlano(aa, novoPlano) =
     PRE
         aa : aluno
+        & novoPlano : PLANO
         & alunoStatus[{aa}] = {ativo}
-        & alunoPresente~[{presente}] /\ (alunoStatus <+ {aa |-> inativo})~[{inativo}] = {}
     THEN
-        alunoStatus := alunoStatus <+ {aa |-> inativo}
+        alunoPlano := alunoPlano <+ {aa |-> novoPlano}
+        || alunoVencimento := alunoVencimento <+ {aa |-> (diaAtual + duracaoPlano(novoPlano))}
     END;
-  
+
 aa <-- consultarAlunos(pp) = 
     PRE 
         pp : PROF 
@@ -331,11 +362,11 @@ canDel <-- canDeleteProf(pp) =
         canDel := bool(pp : prof & #(pp2).(pp2 : prof & pp2 /= pp))
     END;
 
-canAdd <-- canAddAluno(aa, pp) =
+canAdd <-- canAddAluno(aa, pp, plano) =
     PRE
-        aa : ALUNO & pp : PROF
+        aa : ALUNO & pp : PROF & plano : PLANO
     THEN
-        canAdd := bool(aa : ALUNO & pp : prof & aa /: dom(alunoProf) & aa /: dom(alunoStatus) & 
+        canAdd := bool(aa : ALUNO & pp : prof & plano : PLANO & aa /: dom(alunoProf) & aa /: dom(alunoStatus) & 
                       (alunoPresente \/ {aa |-> ausente})~[{presente}] /\ (alunoStatus \/ {aa |-> ativo})~[{inativo}] = {})
     END;
 
@@ -422,19 +453,18 @@ canCheck <-- canCheckOut(aa) =
         canCheck := bool(aa : aluno & alunoPresente[{aa}] = {presente})
     END;
 
-canUpdate <-- canAtualizarPagamento(aa) =
+canUpdate <-- canAtualizarPagamento(aa, novoPlano) =
     PRE
-        aa : ALUNO
+        aa : ALUNO & novoPlano : PLANO
     THEN
-        canUpdate := bool(aa : aluno & alunoStatus[{aa}] = {inativo})
+        canUpdate := bool(aa : aluno & novoPlano : PLANO & alunoStatus[{aa}] = {inativo})
     END;
 
-canInativ <-- canInativarMatricula(aa) =
+canRenov <-- canRenovarPlano(aa, novoPlano) =
     PRE
-        aa : ALUNO
+        aa : ALUNO & novoPlano : PLANO
     THEN
-        canInativ := bool(aa : aluno & alunoStatus[{aa}] = {ativo} & 
-                         alunoPresente~[{presente}] /\ (alunoStatus <+ {aa |-> inativo})~[{inativo}] = {})
+        canRenov := bool(aa : aluno & novoPlano : PLANO & alunoStatus[{aa}] = {ativo})
     END;
 
 canConsult <-- canConsultarAlunos(pp) =
@@ -482,6 +512,34 @@ canConsult <-- canConsultarQuantSeriesTreino(tt) =
         tt : TREINO
     THEN
         canConsult := bool(tt : treino)
+    END;
+
+canConsult <-- canConsultarDiasRestantes(aa) =
+    PRE
+        aa : ALUNO
+    THEN
+        canConsult := bool(aa : aluno)
+    END;
+
+canConsult <-- canConsultarPlanoAluno(aa) =
+    PRE
+        aa : ALUNO
+    THEN
+        canConsult := bool(aa : aluno)
+    END;
+
+canConsult <-- canConsultarAlunosVencendoEm(dias) =
+    PRE
+        dias : NAT
+    THEN
+        canConsult := bool(dias : NAT)
+    END;
+
+canConsult <-- canConsultarVencimentoAluno(aa) =
+    PRE
+        aa : ALUNO
+    THEN
+        canConsult := bool(aa : aluno)
     END
 
 END
