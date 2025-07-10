@@ -1,5 +1,14 @@
 IMPLEMENTATION Gym_i
 REFINES Gym
+
+VALUES
+    ALUNO = 0..99;
+    PROF = 0..99;
+    DIA = 0..6;
+    TREINO = 0..99;
+    EXERCICIO = 0..99;
+    SERIES = 0..5;
+    REPETICOES = 0..20
     
 CONCRETE_VARIABLES
     aluno_i,
@@ -11,10 +20,7 @@ CONCRETE_VARIABLES
     treinoAluno_i,
     treinoExercicio_i,
     alunoStatus_i,
-    alunoPresente_i,
-    alunoPlano_i,
-    alunoVencimento_i,
-    diaAtual_i
+    alunoPresente_i
     
 INVARIANT
     aluno_i : ALUNO --> BOOL
@@ -28,42 +34,25 @@ INVARIANT
     
     & exercicio_i : EXERCICIO --> BOOL
     & dom(exercicio_i |> {TRUE}) = exercicio
-    
-    & alunoProf_i : ALUNO --> PROF
-    & alunoProf = aluno <| alunoProf_i
+
+    & alunoProf_i : ALUNO --> PROF                
+    & alunoProf = aluno <| alunoProf_i         
     
     & treinoProf_i : TREINO --> PROF
     & treinoProf = treino <| treinoProf_i
+
+    & treinoAluno_i : (TREINO * ALUNO * DIA) --> BOOL
+    & !(tt, aa, dd). ((tt : treino & aa : aluno & dd : DIA) => (((tt, (aa, dd))) : treinoAluno) <=> (treinoAluno_i((tt, aa), dd) = TRUE))
     
-    & treinoAluno_i : TREINO <-> (ALUNO * dia)
-    & treinoAluno = treino <| treinoAluno_i
-    
-    & treinoExercicio_i : TREINO <-> (EXERCICIO * series * repeticoes)
-    & treinoExercicio = treino <| treinoExercicio_i
-    
+    & treinoExercicio_i : (TREINO * EXERCICIO * SERIES * REPETICOES) --> BOOL
+    & !(tt, ee, ss, rr). ((tt : treino & ee : exercicio & ss : SERIES & rr : REPETICOES) =>
+            (tt |-> ((ee |-> ss) |-> rr)) : treinoExercicio <=> (treinoExercicio_i((((tt |-> ee) |-> ss) |-> rr)) = TRUE))
+
     & alunoStatus_i : ALUNO --> STATUS
     & alunoStatus = aluno <| alunoStatus_i
     
     & alunoPresente_i : ALUNO --> PRESENTE
     & alunoPresente = aluno <| alunoPresente_i
-    
-    & alunoPlano_i : ALUNO --> PLANO
-    & alunoPlano = aluno <| alunoPlano_i
-    
-    & alunoVencimento_i : ALUNO --> NAT
-    & alunoVencimento = aluno <| alunoVencimento_i
-    
-    & diaAtual_i = diaAtual
-    
-VALUES
-    ALUNO = 0..99;
-    PROF = 0..99;
-    TREINO = 0..99;
-    EXERCICIO = 0..99;
-    dia = {segunda, terca, quarta, quinta, sexta, sabado, domingo};
-    series = 3..5;
-    repeticoes = 10..20;
-    duracaoPlano = {mensal |-> 31,  semestral |-> 186,  anual |-> 365}
     
 INITIALISATION
     aluno_i := ALUNO * {FALSE};
@@ -72,271 +61,212 @@ INITIALISATION
     exercicio_i := EXERCICIO * {FALSE};
     alunoProf_i := ALUNO * {99};
     treinoProf_i := TREINO * {99};
-    treinoAluno_i := {};
-    treinoExercicio_i := {};
+    treinoAluno_i := (TREINO * ALUNO * DIA) * {FALSE};
+    treinoExercicio_i := (TREINO * EXERCICIO * SERIES * REPETICOES) * {FALSE};
     alunoStatus_i := ALUNO * {inativo};
-    alunoPresente_i := ALUNO * {ausente};
-    alunoPlano_i := ALUNO * {mensal};
-    alunoVencimento_i := ALUNO * {0};
-    diaAtual_i := 0
+    alunoPresente_i := ALUNO * {ausente}
     
 OPERATIONS
     
     addProf(pp) =
     BEGIN
-        skip
+        prof_i(pp) := TRUE
     END;
     
     deleteProf(pp) =
     BEGIN
-        skip
+       VAR alunoTemp,  profAtual,  treinoTemp IN
+           alunoTemp := 0;
+           
+           WHILE alunoTemp < 100
+               
+           DO
+               profAtual := alunoProf_i(alunoTemp);
+               IF profAtual = pp
+               THEN
+                   alunoProf_i(alunoTemp) := 99
+               ELSE
+                   skip
+               END;
+               
+               alunoTemp := alunoTemp + 1
+               
+           INVARIANT
+               alunoTemp: NAT & alunoTemp < 100 & alunoTemp : dom(alunoProf_i)
+               
+           VARIANT
+               100 - alunoTemp
+               
+            END;
+            
+            treinoTemp := 0;
+               
+            WHILE treinoTemp < 100
+               
+           DO
+                   profAtual := treinoProf_i(treinoTemp);
+                   IF profAtual = pp
+                   THEN
+                       treinoProf_i(treinoTemp) := 99
+                   ELSE
+                       skip
+                   END;
+                   
+                   treinoTemp := treinoTemp + 1
+                   
+               INVARIANT
+                   treinoTemp: NAT & treinoTemp < 100
+                   
+               VARIANT
+                   100 - treinoTemp
+                   
+               END
+              
+        END;
+            
+        prof_i(pp) := FALSE
+        
     END;
     
-    addAluno(aa,pp,plano) =
-    BEGIN
-        skip
-    END;
-
-    deleteAluno(aa) =
-    BEGIN
-        skip
-    END;
-
     changeAlunoProf(aa, pp) =
     BEGIN
-        skip
-    END;
+        VAR treinoTemp, diaTemp IN
+            
+            treinoTemp := 0;
+            
+            WHILE treinoTemp < 100
+            DO
+                diaTemp := 0;
+                
+                WHILE diaTemp < 7
+                DO
+                    treinoAluno_i(treinoTemp, aa, diaTemp) := FALSE;
+                    diaTemp := diaTemp + 1
+                    
+                INVARIANT
+                    diaTemp : NAT & diaTemp <= 7
+                    
+                VARIANT
+                    7 - diaTemp
+                    
+                END;
+                
+                treinoTemp := treinoTemp + 1
+                
+            INVARIANT
+                treinoTemp : NAT & treinoTemp <= 100
+                
+            VARIANT
+                100 - treinoTemp
+                
+            END
+            
+        END;
         
+        alunoProf_i(aa) := pp
+        
+    END;
+
+    addAluno(aa,pp) =
+    BEGIN
+        aluno_i(aa) := TRUE;
+        alunoProf_i(aa) := pp;
+        alunoStatus_i(aa) := ativo;
+        alunoPresente_i(aa) := ausente
+    END;
+    
+    deleteAluno(aa) =
+    BEGIN
+        VAR treinoTemp, diaTemp IN
+            
+            treinoTemp := 0;
+            
+            WHILE treinoTemp < 100
+            DO
+                diaTemp := 0;
+                
+                WHILE diaTemp < 7
+                DO
+                    treinoAluno_i(treinoTemp, aa, diaTemp) := FALSE;
+                    diaTemp := diaTemp + 1
+                    
+                INVARIANT
+                    diaTemp : NAT & diaTemp <= 7
+                    
+                VARIANT
+                    7 - diaTemp
+                    
+                END;
+                
+                treinoTemp := treinoTemp + 1
+                
+            INVARIANT
+                treinoTemp : NAT & treinoTemp <= 100
+                
+            VARIANT
+                100 - treinoTemp
+                
+            END
+            
+        END;
+        
+        alunoStatus_i(aa) := inativo;
+        alunoPresente_i(aa) := ausente;
+        alunoProf_i(aa) := 99;
+        aluno_i(aa) := FALSE
+    END;
+    
+    atualizarPagamento(aa) =
+    BEGIN
+        alunoStatus_i(aa) := ativo
+    END;
+    
     addTreinoProf(tt,pp) = 
     BEGIN
-        skip
+        treino_i(tt) := TRUE;
+        treinoProf_i(tt) := pp
     END;
-
+    
     addTreinoAluno(aa,tt,dd) = 
     BEGIN
-        skip
+        treinoAluno_i(tt,  aa,  dd) := TRUE
     END;
-
+    
     deleteTreinoAluno(tt, aa, dd) =
     BEGIN
-        skip
+        treinoAluno_i(tt,  aa,  dd) := FALSE
     END;
-
+    
     changeDiaTreino(tt, aa, ddAnterior, ddNovo) =
     BEGIN
-        skip
+        treinoAluno_i(tt,  aa,  ddAnterior) := FALSE;
+        treinoAluno_i(tt,  aa,  ddNovo) := TRUE
     END;
-
+    
     addExercicioTreino(ex,tt,ss,rp) =
     BEGIN
-        skip
+        treinoExercicio_i(tt, ex, ss, rp) := TRUE;
+        exercicio_i(ex) := TRUE
     END;
-
+    
     deleteExercicioTreino(tt, ex, ss, rp) =
     BEGIN
-        skip
+        treinoExercicio_i(tt, ex, ss, rp) := FALSE
     END;
-
+    
     updateExercicioTreino(tt, ex, newSs, newRp) =
     BEGIN
         skip
     END;
-
+    
     checkIn(aa) =
     BEGIN
-        skip
+        alunoPresente_i(aa) := presente
     END;
-
+    
     checkOut(aa) =
     BEGIN
-        skip
-    END;
-
-    atualizarPagamento(aa, novoPlano) =
-    BEGIN
-        skip
-    END;
-
-    passarDia =
-    BEGIN
-        skip
-    END;
-
-    renovarPlano(aa, novoPlano) =
-    BEGIN
-        skip
-    END;
-
-    aa <-- consultarAlunos(pp) = 
-    BEGIN
-        skip
-    END;
-        
-    tt <-- consultarTreinosDoDia(aa, dd) =
-    BEGIN
-        skip
-    END;
-
-    tt <-- consultarDetalhesTreinosDoDia(aa, dd) =
-    BEGIN
-        skip
-    END;
-        
-    tt <-- consultarTreinosPorAluno(aa) =
-    BEGIN
-        skip
-    END;
-        
-    aa <-- consultarAlunosSemTreino = 
-    BEGIN
-        skip
-    END;
-
-    aa <-- consultarAlunosdeProfSemTreino(pp) = 
-    BEGIN
-        skip
-    END;
-
-    ss <-- consultarQuantSeriesTreino(tt) =
-    BEGIN
-        skip
-    END;
-
-    /* Operações de Consulta para verificar se operações podem ser chamadas */
-
-    canAdd <-- canAddProf(pp) =
-    BEGIN
-        skip
-    END;
-
-    canDel <-- canDeleteProf(pp) =
-    BEGIN
-        skip
-    END;
-
-    canAdd <-- canAddAluno(aa, pp, plano) =
-    BEGIN
-        skip
-    END;
-
-    canDel <-- canDeleteAluno(aa) =
-    BEGIN
-        skip
-    END;
-
-    canChange <-- canChangeAlunoProf(aa, pp) =
-    BEGIN
-        skip
-    END;
-
-    canAdd <-- canAddTreinoProf(tt, pp) =
-    BEGIN
-        skip
-    END;
-
-    canAdd <-- canAddTreinoAluno(aa, tt, dd) =
-    BEGIN
-        skip
-    END;
-
-    canDel <-- canDeleteTreinoAluno(tt, aa, dd) =
-    BEGIN
-        skip
-    END;
-
-    canChange <-- canChangeDiaTreino(tt, aa, ddAnterior, ddNovo) =
-    BEGIN
-        skip
-    END;
-
-    canAdd <-- canAddExercicioTreino(ex, tt, ss, rp) =
-    BEGIN
-        skip
-    END;
-
-    canDel <-- canDeleteExercicioTreino(tt, ex, ss, rp) =
-    BEGIN
-        skip
-    END;
-
-    canUpdate <-- canUpdateExercicioTreino(tt, ex, newSs, newRp) =
-    BEGIN
-        skip
-    END;
-
-    canCheck <-- canCheckIn(aa) =
-    BEGIN
-        skip
-    END;
-
-    canCheck <-- canCheckOut(aa) =
-    BEGIN
-        skip
-    END;
-
-    canUpdate <-- canAtualizarPagamento(aa, novoPlano) =
-    BEGIN
-        skip
-    END;
-
-    canRenov <-- canRenovarPlano(aa, novoPlano) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarAlunos(pp) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarTreinosDoDia(aa, dd) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarDetalhesTreinosDoDia(aa, dd) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarTreinosPorAluno(aa) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarAlunosSemTreino =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarAlunosdeProfSemTreino(pp) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarQuantSeriesTreino(tt) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarDiasRestantes(aa) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarPlanoAluno(aa) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarAlunosVencendoEm(dias) =
-    BEGIN
-        skip
-    END;
-
-    canConsult <-- canConsultarVencimentoAluno(aa) =
-    BEGIN
-        skip
+        alunoPresente_i(aa) := ausente
     END
-
+    
  END
