@@ -53,6 +53,8 @@ INVARIANT
     
     & alunoPresente_i : ALUNO --> PRESENTE
     & alunoPresente = aluno <| alunoPresente_i
+
+
     
 INITIALISATION
     aluno_i := ALUNO * {FALSE};
@@ -67,12 +69,40 @@ INITIALISATION
     alunoPresente_i := ALUNO * {ausente}
     
 OPERATIONS
-    
+
+/*-------------------------------- ADICIONAR --------------------------------*/
     addProf(pp) =
     BEGIN
         prof_i(pp) := TRUE
     END;
     
+    addAluno(aa,pp) =
+    BEGIN
+        aluno_i(aa) := TRUE;
+        alunoProf_i(aa) := pp;
+        alunoStatus_i(aa) := ativo;
+        alunoPresente_i(aa) := ausente
+    END;
+
+    addTreinoProf(tt,pp) = 
+    BEGIN
+        treino_i(tt) := TRUE;
+        treinoProf_i(tt) := pp
+    END;
+
+    addTreinoAluno(aa,tt,dd) = 
+    BEGIN
+        treinoAluno_i(tt,  aa,  dd) := TRUE
+    END;
+
+    addExercicioTreino(ex,tt,ss,rp) =
+    BEGIN
+        treinoExercicio_i(tt, ex, ss, rp) := TRUE;
+        exercicio_i(ex) := TRUE
+    END;
+/*-------------------------------- ADICIONAR --------------------------------*/  
+    
+/*-------------------------------- EXCLUIR --------------------------------*/
     deleteProf(pp) =
     BEGIN
        VAR alunoTemp,  profAtual,  treinoTemp IN
@@ -128,52 +158,6 @@ OPERATIONS
         
     END;
     
-    changeAlunoProf(aa, pp) =
-    BEGIN
-        VAR treinoTemp, diaTemp IN
-            
-            treinoTemp := 0;
-            
-            WHILE treinoTemp < 100
-            DO
-                diaTemp := 0;
-                
-                WHILE diaTemp < 7
-                DO
-                    treinoAluno_i(treinoTemp, aa, diaTemp) := FALSE;
-                    diaTemp := diaTemp + 1
-                    
-                INVARIANT
-                    diaTemp : NAT & diaTemp <= 7
-                    
-                VARIANT
-                    7 - diaTemp
-                    
-                END;
-                
-                treinoTemp := treinoTemp + 1
-                
-            INVARIANT
-                treinoTemp : NAT & treinoTemp <= 100
-                
-            VARIANT
-                100 - treinoTemp
-                
-            END
-            
-        END;
-        
-        alunoProf_i(aa) := pp
-        
-    END;
-
-    addAluno(aa,pp) =
-    BEGIN
-        aluno_i(aa) := TRUE;
-        alunoProf_i(aa) := pp;
-        alunoStatus_i(aa) := ativo;
-        alunoPresente_i(aa) := ausente
-    END;
     
     deleteAluno(aa) =
     BEGIN
@@ -215,50 +199,77 @@ OPERATIONS
         alunoProf_i(aa) := 99;
         aluno_i(aa) := FALSE
     END;
-    
-    atualizarPagamento(aa) =
-    BEGIN
-        alunoStatus_i(aa) := ativo
-    END;
-    
-    addTreinoProf(tt,pp) = 
-    BEGIN
-        treino_i(tt) := TRUE;
-        treinoProf_i(tt) := pp
-    END;
-    
-    addTreinoAluno(aa,tt,dd) = 
-    BEGIN
-        treinoAluno_i(tt,  aa,  dd) := TRUE
-    END;
-    
+
     deleteTreinoAluno(tt, aa, dd) =
     BEGIN
         treinoAluno_i(tt,  aa,  dd) := FALSE
     END;
-    
-    changeDiaTreino(tt, aa, ddAnterior, ddNovo) =
-    BEGIN
-        treinoAluno_i(tt,  aa,  ddAnterior) := FALSE;
-        treinoAluno_i(tt,  aa,  ddNovo) := TRUE
-    END;
-    
-    addExercicioTreino(ex,tt,ss,rp) =
-    BEGIN
-        treinoExercicio_i(tt, ex, ss, rp) := TRUE;
-        exercicio_i(ex) := TRUE
-    END;
-    
+
     deleteExercicioTreino(tt, ex, ss, rp) =
     BEGIN
         treinoExercicio_i(tt, ex, ss, rp) := FALSE
     END;
+/*-------------------------------- EXCLUIR --------------------------------*/   
+
+/*-------------------------------- ATUALIZAR ------------------------------*/
+    updateAlunoProf(aa, pp) =
+    BEGIN
+        VAR treinoTemp, diaTemp IN
+            
+            treinoTemp := 0;
+            
+            WHILE treinoTemp < 100
+            DO
+                diaTemp := 0;
+                
+                WHILE diaTemp < 7
+                DO
+                    treinoAluno_i(treinoTemp, aa, diaTemp) := FALSE;
+                    diaTemp := diaTemp + 1
+                    
+                INVARIANT
+                    diaTemp : NAT & diaTemp <= 7
+                    
+                VARIANT
+                    7 - diaTemp
+                    
+                END;
+                
+                treinoTemp := treinoTemp + 1
+                
+            INVARIANT
+                treinoTemp : NAT & treinoTemp <= 100
+                
+            VARIANT
+                100 - treinoTemp
+                
+            END
+            
+        END;
+        
+        alunoProf_i(aa) := pp
+        
+    END;    
     
+    updatePagamento(aa) =
+    BEGIN
+        alunoStatus_i(aa) := ativo
+    END;
+
+    updateDiaTreino(tt, aa, ddAnterior, ddNovo) =
+    BEGIN
+        treinoAluno_i(tt,  aa,  ddAnterior) := FALSE;
+        treinoAluno_i(tt,  aa,  ddNovo) := TRUE
+    END;
+
     updateExercicioTreino(tt, ex, newSs, newRp) =
     BEGIN
         skip
     END;
     
+/*-------------------------------- ATUALIZAR ------------------------------*/ 
+
+/*----------------------------------- I/O ---------------------------------*/
     checkIn(aa) =
     BEGIN
         alunoPresente_i(aa) := presente
@@ -268,5 +279,71 @@ OPERATIONS
     BEGIN
         alunoPresente_i(aa) := ausente
     END
+/*----------------------------------- I/O ---------------------------------*/
+
+/*-------------------------------- CONSULTAS ------------------------------*/ 
+
+//    aa <-- consultarAlunosDoProf(pp) = 
+//        BEGIN 
+//            VAR ii, profDoAluno, conjuntoDeAlunos
+//            IN  ii := 0; conjuntoDeAlunos := 0..98;
+//                WHILE ii < 100
+//                DO 
+//                    profDoAluno := alunoProf_i(ii);
+//                    IF  profDoAluno /= pp
+//                    THEN conjuntoDeAlunos := conjuntoDeAlunos - {ii}
+//                    END;
+//                ii := ii + 1
+//                INVARIANT ii : NAT & ii <= 100 
+//                VARIANT 100 - ii
+//                END;
+//            aa := conjuntoDeAlunos
+//                
+//            END       
+//            
+//        END
+
+//    ss <-- consultarQuantSeriesTreino(tt) =
+//    BEGIN
+//        VAR ee, ss0, rr, count IN
+//            ee := 0;
+//            count := 0;
+//            
+//            WHILE ee < 99 DO
+//                ss0 := 0;
+//                WHILE ss0 <= 5 DO
+//                    rr := 0;
+//                    WHILE rr <= 20 DO
+//                        VAR treinoExiste IN
+//                            treinoExiste := treinoExercicio_i((tt, ee, ss0, rr));
+//                            IF treinoExiste = TRUE THEN
+//                                count := count + ss0
+//                            END
+//                        END;
+//                        rr := rr + 1
+//                    INVARIANT
+//                        rr : NAT & rr <= 21 
+//                    VARIANT
+//                        21 - rr
+//                    END;
+//                    ss0 := ss0 + 1
+//                INVARIANT
+//                    ss0 : NAT & ss0 <= 6 
+//                VARIANT
+//                    6 - ss0
+//                END;
+//                ee := ee + 1
+//            INVARIANT
+//                ee : NAT & ee <= 99 
+//            VARIANT
+//                99 - ee
+//            END;
+//            
+//            ss := count
+//        END
+
+
     
- END
+/*-------------------------------- CONSULTAS ------------------------------*/ 
+    
+END

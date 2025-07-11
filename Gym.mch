@@ -56,40 +56,14 @@ alunoProf:={}
 
 OPERATIONS
 
+/*-------------------------------- ADICIONAR --------------------------------*/
+
 addProf(pp) =
     PRE
         pp : PROF
         & pp /: prof
     THEN
         prof := prof \/ {pp}
-    END;
-    
-deleteProf(pp) =
-    PRE 
-        pp: PROF
-        & pp: prof 
-        & card(prof - {pp}) > 0
-    THEN
-        ANY newProf WHERE
-            newProf: prof & newProf /= pp
-        THEN
-            alunoProf := alunoProf <+ (alunoProf~[{pp}] * {newProf})
-            || treinoProf := treinoProf <+ (treinoProf~[{pp}] * {newProf})
-            || prof := prof - {pp}
-        END
-    END;
-
-changeAlunoProf(aa, pp) =
-    PRE
-        aa: ALUNO
-        & pp : PROF
-        & aa: aluno
-        & pp: prof
-        & alunoStatus[{aa}] = {ativo}
-        & alunoProf[{aa}] /= {pp}
-    THEN
-        treinoAluno := treinoAluno |>> ({aa} * DIA)
-        || alunoProf := alunoProf <+ {aa |-> pp}
     END;
 
 addAluno(aa,pp) =
@@ -107,29 +81,7 @@ addAluno(aa,pp) =
         || alunoStatus := alunoStatus \/ {aa |-> ativo}
         || alunoPresente := alunoPresente \/ {aa |-> ausente}
     END;
-    
-deleteAluno(aa) =
-    PRE
-        aa : ALUNO
-        & aa : aluno
-        & alunoStatus[{aa}] = {inativo}
-    THEN
-        aluno := aluno - {aa}
-        || alunoProf := {aa} <<| alunoProf
-        || treinoAluno := treinoAluno |>> ({aa} * DIA)
-        || alunoStatus := {aa} <<| alunoStatus
-        || alunoPresente := {aa} <<| alunoPresente
-    END;
 
-atualizarPagamento(aa) =
-    PRE
-        aa: ALUNO
-        & aa: aluno
-        & alunoStatus[{aa}] = {inativo}
-    THEN
-        alunoStatus := alunoStatus <+ {aa |-> ativo}
-    END;
-    
 addTreinoProf(tt,pp) = 
     PRE 
         pp : PROF
@@ -154,34 +106,7 @@ addTreinoAluno(aa,tt,dd) =
     THEN 
         treinoAluno := treinoAluno \/ {tt |-> (aa,dd)} 
     END;
-    
-deleteTreinoAluno(tt, aa, dd) =
-    PRE
-        aa : ALUNO
-        & tt : TREINO
-        & tt: treino
-        & aa: aluno
-        & dd: DIA
-        & (tt |-> (aa, dd)) : treinoAluno
-    THEN
-        treinoAluno := treinoAluno - {tt |-> (aa, dd)}
-    END;
-    
-changeDiaTreino(tt, aa, ddAnterior, ddNovo) =
-    PRE 
-        aa : ALUNO
-        & tt : TREINO
-        & tt : treino 
-        & aa : aluno 
-        & ddAnterior : DIA 
-        & ddNovo : DIA 
-        & ddAnterior /= ddNovo 
-        & (tt |-> (aa, ddAnterior)) : treinoAluno
-        & alunoStatus[{aa}] = {ativo}
-    THEN 
-        treinoAluno := (treinoAluno - {tt |-> (aa, ddAnterior)}) \/ {tt |-> (aa, ddNovo)}
-    END;
-    
+
 addExercicioTreino(ex,tt,ss,rp) =
     PRE 
         ex : EXERCICIO 
@@ -195,6 +120,51 @@ addExercicioTreino(ex,tt,ss,rp) =
         || exercicio:= exercicio \/ {ex}
     END;
     
+
+/*-------------------------------- ADICIONAR --------------------------------*/
+
+/*-------------------------------- EXCLUIR --------------------------------*/
+deleteProf(pp) =
+    PRE 
+        pp: PROF
+        & pp: prof 
+        & card(prof - {pp}) > 0
+    THEN
+        ANY newProf WHERE
+            newProf: prof & newProf /= pp
+        THEN
+            alunoProf := alunoProf <+ (alunoProf~[{pp}] * {newProf})
+            || treinoProf := treinoProf <+ (treinoProf~[{pp}] * {newProf})
+            || prof := prof - {pp}
+        END
+    END;
+
+
+deleteAluno(aa) =
+    PRE
+        aa : ALUNO
+        & aa : aluno
+        & alunoStatus[{aa}] = {inativo}
+    THEN
+        aluno := aluno - {aa}
+        || alunoProf := {aa} <<| alunoProf
+        || treinoAluno := treinoAluno |>> ({aa} * DIA)
+        || alunoStatus := {aa} <<| alunoStatus
+        || alunoPresente := {aa} <<| alunoPresente
+    END;
+
+deleteTreinoAluno(tt, aa, dd) =
+    PRE
+        aa : ALUNO
+        & tt : TREINO
+        & tt: treino
+        & aa: aluno
+        & dd: DIA
+        & (tt |-> (aa, dd)) : treinoAluno
+    THEN
+        treinoAluno := treinoAluno - {tt |-> (aa, dd)}
+    END;
+
 deleteExercicioTreino(tt, ex, ss, rp) =
     PRE
         tt : TREINO
@@ -207,7 +177,47 @@ deleteExercicioTreino(tt, ex, ss, rp) =
     THEN
         treinoExercicio := treinoExercicio - {tt |-> (ex, ss, rp)}
     END;
+/*-------------------------------- EXCLUIR --------------------------------*/
+
+/*-------------------------------- ATUALIZAR ------------------------------*/
     
+updateAlunoProf(aa, pp) =
+    PRE
+        aa: ALUNO
+        & pp : PROF
+        & aa: aluno
+        & pp: prof
+        & alunoStatus[{aa}] = {ativo}
+        & alunoProf[{aa}] /= {pp}
+    THEN
+        treinoAluno := treinoAluno |>> ({aa} * DIA)
+        || alunoProf := alunoProf <+ {aa |-> pp}
+    END;
+
+updatePagamento(aa) =
+    PRE
+        aa: ALUNO
+        & aa: aluno
+        & alunoStatus[{aa}] = {inativo}
+    THEN
+        alunoStatus := alunoStatus <+ {aa |-> ativo}
+    END;
+        
+updateDiaTreino(tt, aa, ddAnterior, ddNovo) =
+    PRE 
+        aa : ALUNO
+        & tt : TREINO
+        & tt : treino 
+        & aa : aluno 
+        & ddAnterior : DIA 
+        & ddNovo : DIA 
+        & ddAnterior /= ddNovo 
+        & (tt |-> (aa, ddAnterior)) : treinoAluno
+        & alunoStatus[{aa}] = {ativo}
+    THEN 
+        treinoAluno := (treinoAluno - {tt |-> (aa, ddAnterior)}) \/ {tt |-> (aa, ddNovo)}
+    END;
+      
 updateExercicioTreino(tt, ex, newSs, newRp) =
     PRE
         tt : TREINO
@@ -224,14 +234,17 @@ updateExercicioTreino(tt, ex, newSs, newRp) =
             treinoExercicio := (treinoExercicio - {tt |-> (ex,oldSs,oldRp)}) \/ {tt |-> (ex,newSs,newRp)}
         END
     END;
-    
+
+/*-------------------------------- ATUALIZAR ------------------------------*/
+
+
+/*----------------------------------- I/O ---------------------------------*/
 checkIn(aa) =
     PRE
         aa : ALUNO
         & aa: aluno
         & alunoStatus[{aa}] = {ativo}
         & alunoPresente[{aa}] = {ausente}
-        & (alunoPresente <+ {aa |-> presente})~[{presente}] /\ alunoStatus~[{inativo}] = {}
     THEN
         alunoPresente := alunoPresente <+ {aa |-> presente}
     END;
@@ -245,44 +258,25 @@ checkOut(aa) =
         alunoPresente := alunoPresente <+ {aa |-> ausente}
     END
     
-END
 
-//OPERATIONS
-//atualizarPagamento(aa, novoPlano) =
-//    PRE
-//        aa: aluno
-//        & novoPlano : PLANO
-//        & alunoStatus[{aa}] = {inativo}
-//    THEN
-//        alunoStatus := alunoStatus <+ {aa |-> ativo}
-//        || alunoPlano := alunoPlano <+ {aa |-> novoPlano}
-//        || alunoVencimento := alunoVencimento <+ {aa |-> (diaAtual + duracaoPlano(novoPlano))}
-//    END;
-//
-//passarDia =
-//    BEGIN
-//        diaAtual := diaAtual + 1
-//        || alunoStatus := alunoStatus <+ ({aa | aa : aluno & alunoVencimento(aa) <= diaAtual} * {inativo})
-//    END;
-//
-//renovarPlano(aa, novoPlano) =
-//    PRE
-//        aa : aluno
-//        & novoPlano : PLANO
-//        & alunoStatus[{aa}] = {ativo}
-//    THEN
-//        alunoPlano := alunoPlano <+ {aa |-> novoPlano}
-//        || alunoVencimento := alunoVencimento <+ {aa |-> (diaAtual + duracaoPlano(novoPlano))}
-//    END;
-//
-//aa <-- consultarAlunos(pp) = 
+/*----------------------------------- I/O ---------------------------------*/
+//aa <-- consultarAlunosDoProf(pp) = 
 //    PRE 
 //        pp : PROF 
 //        & alunoProf~[{pp}] /= {}
 //    THEN 
 //        aa := alunoProf~[{pp}]
-//    END;
-//    
+//    END
+
+//ss <-- consultarQuantSeriesTreino(tt) =
+//    PRE
+//        tt : TREINO & tt : treino
+//    THEN
+//        ss := SIGMA(ex, ss, rr).(ex : exercicio & ss : SERIES & rr : REPETICOES & (tt |-> (ex, ss, rr)) : treinoExercicio | ss)
+//    END
+
+END
+/*-------------------------------- CONSULTA --------------------------------*/
 //tt <-- consultarTreinosDoDia(aa, dd) =
 //    PRE
 //        aa: aluno
@@ -330,9 +324,13 @@ END
 //    PRE
 //        tt : treino
 //    THEN
-//        ss := SIGMA(ex, ss, rr).(ex : exercicio & ss : series & rr : repeticoes & (tt |-> (ex, ss, rr)) : treinoExercicio | ss)
-//    END;
-//
+//        ss := SIGMA(ex, ss, rr).(ex : exercicio & ss : SERIES & rr : REPETICOES & (tt |-> (ex, ss, rr)) : treinoExercicio | ss)
+//    END
+
+
+/*-------------------------------- CONSULTA --------------------------------*/
+
+
 ///* Operações de Consulta para verificar se operações podem ser chamadas */
 //
 //canAdd <-- canAddProf(pp) =
