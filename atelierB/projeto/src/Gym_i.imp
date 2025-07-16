@@ -1,0 +1,841 @@
+﻿IMPLEMENTATION Gym_i
+REFINES Gym
+
+VALUES
+    ALUNO = 0 .. 99 ;
+    PROF = 0 .. 99 ;
+    DIA = 0 .. 6 ;
+    TREINO = 0 .. 99 ;
+    EXERCICIO = 0 .. 99 ;
+    SERIES = 0 .. 5 ;
+    REPETICOES = 0 .. 20
+
+CONCRETE_VARIABLES
+    aluno_i ,
+    prof_i ,
+    treino_i ,
+    exercicio_i ,
+    alunoProf_i ,
+    treinoProf_i ,
+    treinoAluno_i ,
+    treinoExercicio_i ,
+    alunoStatus_i ,
+    alunoPresente_i
+
+INVARIANT
+    aluno_i : ALUNO --> BOOL
+    & dom ( aluno_i |> { TRUE } ) = aluno
+
+    & prof_i : PROF --> BOOL
+    & dom ( prof_i |> { TRUE } ) = prof
+
+    & treino_i : TREINO --> BOOL
+    & dom ( treino_i |> { TRUE } ) = treino
+
+    & exercicio_i : EXERCICIO --> BOOL
+    & dom ( exercicio_i |> { TRUE } ) = exercicio
+
+    & alunoProf_i : ALUNO --> PROF
+    & alunoProf = aluno <| alunoProf_i
+
+    & treinoProf_i : TREINO --> PROF
+    & treinoProf = treino <| treinoProf_i
+
+    & treinoAluno_i : ( TREINO * ALUNO * DIA ) --> BOOL
+    & ! ( tt , aa , dd ) . ( ( tt : treino & aa : aluno & dd : DIA ) => ( ( ( tt , ( aa , dd ) ) ) : treinoAluno ) <=> ( treinoAluno_i ( ( tt , aa ) , dd ) = TRUE ) )
+
+    & treinoExercicio_i : ( TREINO * EXERCICIO * SERIES * REPETICOES ) --> BOOL
+    & ! ( tt , ee , ss , rr ) . ( ( tt : treino & ee : exercicio & ss : SERIES & rr : REPETICOES ) =>
+            ( tt |-> ( ( ee |-> ss ) |-> rr ) ) : treinoExercicio <=> ( treinoExercicio_i ( ( ( ( tt |-> ee ) |-> ss ) |-> rr ) ) = TRUE ) )
+
+    & alunoStatus_i : ALUNO --> STATUS
+    & alunoStatus = aluno <| alunoStatus_i
+
+    & alunoPresente_i : ALUNO --> PRESENTE
+    & alunoPresente = aluno <| alunoPresente_i
+
+
+
+INITIALISATION
+    aluno_i := ALUNO * { FALSE } ;
+    prof_i := PROF * { FALSE } ;
+    treino_i := TREINO * { FALSE } ;
+    exercicio_i := EXERCICIO * { FALSE } ;
+    alunoProf_i := ALUNO * { 99 } ;
+    treinoProf_i := TREINO * { 99 } ;
+    alunoStatus_i := ALUNO * { inativo } ;
+    alunoPresente_i := ALUNO * { ausente } ;
+
+    //    treinoAluno_i := (TREINO * ALUNO * DIA) * {FALSE};
+    VAR ii , jj , kk IN
+            ii := 0 ;
+            WHILE ii < 100 DO
+                jj := 0 ;
+                WHILE jj < 100 DO
+                    kk := 0 ;
+                    WHILE kk < 7 DO
+                        treinoAluno_i ( ii , jj , kk ) := FALSE ;
+                        kk := kk + 1
+                    INVARIANT
+                        kk : NAT & kk <= 7
+                    VARIANT
+                        7 - kk
+                    END ;
+                     jj := jj + 1
+                INVARIANT
+                    jj : NAT & jj <= 100
+                VARIANT
+                    100 - jj
+                END ;
+                ii := ii + 1
+            INVARIANT
+                ii : NAT & ii <= 100
+            VARIANT
+                100 - ii
+            END
+        END ;
+
+//    treinoExercicio_i := (TREINO * EXERCICIO * SERIES * REPETICOES) * {FALSE};
+    VAR ii , jj , kk , ll IN
+            ii := 0 ;
+            WHILE ii < 100 DO
+                jj := 0 ;
+                WHILE jj < 100 DO
+                    kk := 0 ;
+                    WHILE kk < 6 DO
+                        ll := 0 ;
+                        WHILE ll < 21 DO
+                            treinoExercicio_i ( ii , jj , kk , ll ) := FALSE ;
+                        ll := ll + 1
+                        INVARIANT
+                            ll : NAT & ll <= 21
+                        VARIANT
+                            21 - ll
+                        END ;
+                    kk := kk + 1
+                    INVARIANT
+                        kk : NAT & kk <= 6
+                    VARIANT
+                        6 - kk
+                    END ;
+                    jj := jj + 1
+                INVARIANT
+                    jj : NAT & jj <= 100
+                VARIANT
+                    100 - jj
+                END ;
+                ii := ii + 1
+            INVARIANT
+                ii : NAT & ii <= 100
+            VARIANT
+                100 - ii
+            END
+        END
+
+
+OPERATIONS
+
+/*-------------------------------- ADICIONAR --------------------------------*/
+    addProf ( pp ) =
+    BEGIN
+        prof_i ( pp ) := TRUE
+    END ;
+
+    addAluno ( aa , pp ) =
+    BEGIN
+        aluno_i ( aa ) := TRUE ;
+        alunoProf_i ( aa ) := pp ;
+        alunoStatus_i ( aa ) := ativo ;
+        alunoPresente_i ( aa ) := ausente
+    END ;
+
+    addTreinoProf ( tt , pp ) =
+    BEGIN
+        treino_i ( tt ) := TRUE ;
+        treinoProf_i ( tt ) := pp
+    END ;
+
+    addTreinoAluno ( aa , tt , dd ) =
+    BEGIN
+        treinoAluno_i ( tt , aa , dd ) := TRUE
+    END ;
+
+    addExercicioTreino ( ex , tt , ss , rp ) =
+    BEGIN
+        treinoExercicio_i ( tt , ex , ss , rp ) := TRUE ;
+        exercicio_i ( ex ) := TRUE
+    END ;
+/*-------------------------------- ADICIONAR --------------------------------*/
+
+/*-------------------------------- EXCLUIR --------------------------------*/
+    deleteProf ( pp ) =
+    BEGIN
+       VAR alunoTemp , profAtual , treinoTemp IN
+           alunoTemp := 0 ;
+
+           WHILE alunoTemp < 100
+
+           DO
+               profAtual := alunoProf_i ( alunoTemp ) ;
+               IF profAtual = pp
+               THEN
+                   alunoProf_i ( alunoTemp ) := 99
+               ELSE
+                   skip
+               END ;
+
+               alunoTemp := alunoTemp + 1
+
+           INVARIANT
+               alunoTemp : NAT & alunoTemp < 100 & alunoTemp : dom ( alunoProf_i )
+
+           VARIANT
+               100 - alunoTemp
+
+            END ;
+
+            treinoTemp := 0 ;
+
+            WHILE treinoTemp < 100
+
+           DO
+                   profAtual := treinoProf_i ( treinoTemp ) ;
+                   IF profAtual = pp
+                   THEN
+                       treinoProf_i ( treinoTemp ) := 99
+                   ELSE
+                       skip
+                   END ;
+
+                   treinoTemp := treinoTemp + 1
+
+               INVARIANT
+                   treinoTemp : NAT & treinoTemp < 100
+
+               VARIANT
+                   100 - treinoTemp
+
+               END
+
+        END ;
+
+        prof_i ( pp ) := FALSE
+
+    END ;
+
+
+    deleteAluno ( aa ) =
+    BEGIN
+        VAR treinoTemp , diaTemp IN
+
+            treinoTemp := 0 ;
+
+            WHILE treinoTemp < 100
+            DO
+                diaTemp := 0 ;
+
+                WHILE diaTemp < 7
+                DO
+                    treinoAluno_i ( treinoTemp , aa , diaTemp ) := FALSE ;
+                    diaTemp := diaTemp + 1
+
+                INVARIANT
+                    diaTemp : NAT & diaTemp <= 7
+
+                VARIANT
+                    7 - diaTemp
+
+                END ;
+
+                treinoTemp := treinoTemp + 1
+
+            INVARIANT
+                treinoTemp : NAT & treinoTemp <= 100
+
+            VARIANT
+                100 - treinoTemp
+
+            END
+
+        END ;
+
+        alunoStatus_i ( aa ) := inativo ;
+        alunoPresente_i ( aa ) := ausente ;
+        alunoProf_i ( aa ) := 99 ;
+        aluno_i ( aa ) := FALSE
+    END ;
+
+    deleteTreinoAluno ( tt , aa , dd ) =
+    BEGIN
+        treinoAluno_i ( tt , aa , dd ) := FALSE
+    END ;
+
+    deleteExercicioTreino ( tt , ex , ss , rp ) =
+    BEGIN
+        treinoExercicio_i ( tt , ex , ss , rp ) := FALSE
+    END ;
+/*-------------------------------- EXCLUIR --------------------------------*/
+
+/*-------------------------------- ATUALIZAR ------------------------------*/
+    updateAlunoProf ( aa , pp ) =
+    BEGIN
+        VAR treinoTemp , diaTemp IN
+
+            treinoTemp := 0 ;
+
+            WHILE treinoTemp < 100
+            DO
+                diaTemp := 0 ;
+
+                WHILE diaTemp < 7
+                DO
+                    treinoAluno_i ( treinoTemp , aa , diaTemp ) := FALSE ;
+                    diaTemp := diaTemp + 1
+
+                INVARIANT
+                    diaTemp : NAT & diaTemp <= 7
+
+                VARIANT
+                    7 - diaTemp
+
+                END ;
+
+                treinoTemp := treinoTemp + 1
+
+            INVARIANT
+                treinoTemp : NAT & treinoTemp <= 100
+
+            VARIANT
+                100 - treinoTemp
+
+            END
+
+        END ;
+
+        alunoProf_i ( aa ) := pp
+
+    END ;
+
+    updatePagamento ( aa ) =
+    BEGIN
+        alunoStatus_i ( aa ) := ativo
+    END ;
+
+    setAlunoInativo ( aa ) =
+    BEGIN
+        alunoStatus_i ( aa ) := inativo
+    END ;
+
+    updateDiaTreino ( tt , aa , ddAnterior , ddNovo ) =
+    BEGIN
+        treinoAluno_i ( tt , aa , ddAnterior ) := FALSE ;
+        treinoAluno_i ( tt , aa , ddNovo ) := TRUE
+    END ;
+
+    updateExercicioTreino ( tt , ex , newSs , newRp ) =
+    BEGIN
+        VAR ss , rp , tempTreinoExercicio IN
+            ss := 0 ;
+
+            WHILE ss <= 5 DO
+                rp := 0 ;
+                WHILE rp <= 20 DO
+                    tempTreinoExercicio := treinoExercicio_i ( tt , ex , ss , rp ) ;
+                    IF tempTreinoExercicio = TRUE THEN
+                        treinoExercicio_i ( tt , ex , ss , rp ) := FALSE
+                    ELSE
+                        skip
+                    END ;
+                    rp := rp + 1
+                INVARIANT
+                    rp : NAT & rp <= 21
+                VARIANT
+                    21 - rp
+                END ;
+                ss := ss + 1
+            INVARIANT
+                ss : NAT & ss <= 6
+            VARIANT
+                6 - ss
+            END
+        END ;
+        treinoExercicio_i ( tt , ex , newSs , newRp ) := TRUE
+    END ;
+
+/*-------------------------------- ATUALIZAR ------------------------------*/
+
+/*----------------------------------- I/O ---------------------------------*/
+    checkIn ( aa ) =
+    BEGIN
+        alunoPresente_i ( aa ) := presente
+    END ;
+
+    checkOut ( aa ) =
+    BEGIN
+        alunoPresente_i ( aa ) := ausente
+    END ;
+
+/*----------------------------------- I/O ---------------------------------*/
+
+/*-------------------------------- CONSULTAS ------------------------------*/
+
+aa <-- quantidadeAlunos =
+    BEGIN
+        VAR alunoCount , ii , alunoAtual IN
+            alunoCount := 0 ;
+            ii := 0 ;
+            WHILE ii < 99
+            DO
+                alunoAtual := aluno_i ( ii ) ;
+                IF alunoAtual = TRUE THEN
+                    alunoCount := alunoCount + 1
+                END ;
+                ii := ii + 1
+            INVARIANT
+                ii <= 99 & ii : NAT & alunoCount < 99
+            VARIANT
+                99 - ii
+            END ;
+            aa := alunoCount
+        END
+    END ;
+
+pp <-- quantidadeProfessores =
+    BEGIN
+        VAR ii , professorAtual , professorCount IN
+            ii := 0 ;
+            professorCount := 0 ;
+            WHILE ii < 99
+            DO
+                professorAtual := prof_i ( ii ) ;
+                IF professorAtual = TRUE THEN
+                    professorCount := professorCount + 1
+                END ;
+                ii := ii + 1
+            INVARIANT
+                ii <= 99 & ii : NAT & professorCount < 99
+            VARIANT
+                99 - ii
+            END ;
+
+            pp := professorCount
+        END
+    END ;
+
+ap <-- alunosPorProf ( pp ) =
+    BEGIN
+
+        VAR ii , alunoCount , profAtual IN
+            ii := 0 ;
+            alunoCount := 0 ;
+            WHILE ii < 99
+            DO
+                profAtual := alunoProf_i ( ii ) ;
+                IF profAtual = pp THEN
+                    alunoCount := alunoCount + 1
+                END ;
+                ii := ii + 1
+            INVARIANT
+                ii : NAT & ii <= 99 & alunoCount < 99
+            VARIANT
+                99 - ii
+            END ;
+
+            ap := alunoCount
+        END
+    END ;
+
+resp <-- alunoDeProfessor ( aa , pp ) =
+    BEGIN
+        VAR ap IN
+            ap := alunoProf_i ( aa ) ;
+            IF ap = pp THEN
+                resp := TRUE
+            ELSE
+                resp := FALSE
+            END
+        END
+    END ;
+
+/*-------------------------------- VERIFICAR PRECONDITION ------------------------------*/
+
+canAdd <-- canAddProf ( pp ) =
+    BEGIN
+        VAR profAtual IN
+            profAtual := prof_i ( pp ) ;
+            IF pp /= 99 & profAtual = FALSE THEN
+                canAdd := TRUE
+            ELSE
+                canAdd := FALSE
+            END
+        END
+    END ;
+
+canDel <-- canDeleteProf ( pp ) =
+    BEGIN
+        VAR profAtual , ii , profCount , verificarProf IN
+            profAtual := prof_i ( pp ) ;
+            profCount := 0 ;
+            ii := 0 ;
+
+            WHILE ii < 99 DO
+                verificarProf := prof_i ( ii ) ;
+                IF verificarProf = TRUE THEN
+                    profCount := profCount + 1
+                END ;
+                ii := ii + 1
+            INVARIANT
+                ii : NAT & ii <= 99 & profCount <= 99
+            VARIANT
+                99 - ii
+            END ;
+
+            IF pp /= 99 & profAtual = TRUE & profCount > 1 THEN
+                canDel := TRUE
+            ELSE
+                canDel := FALSE
+            END
+        END
+    END ;
+
+canAdd <-- canAddAluno ( aa , pp ) =
+    BEGIN
+        VAR alunoAtual , profAtual IN
+            alunoAtual := aluno_i ( aa ) ;
+            profAtual := prof_i ( pp ) ;
+
+            IF aa /= 99 & pp /= 99 & alunoAtual = FALSE & profAtual = TRUE THEN
+                canAdd := TRUE
+            ELSE
+                canAdd := FALSE
+            END
+        END
+    END ;
+
+canDel <-- canDeleteAluno ( aa ) =
+    BEGIN
+        VAR alunoAtual , statusAtual IN
+            alunoAtual := aluno_i ( aa ) ;
+            statusAtual := alunoStatus_i ( aa ) ;
+
+            IF aa /= 99 & alunoAtual = TRUE & statusAtual = inativo THEN
+                canDel := TRUE
+            ELSE
+                canDel := FALSE
+            END
+        END
+    END ;
+
+canAdd <-- canAddTreinoProf ( tt , pp ) =
+    BEGIN
+        VAR treinoAtual , profAtual IN
+            treinoAtual := treino_i ( tt ) ;
+            profAtual := prof_i ( pp ) ;
+
+            IF tt /= 99 & pp /= 99 & treinoAtual = FALSE & profAtual = TRUE THEN
+                canAdd := TRUE
+            ELSE
+                canAdd := FALSE
+            END
+        END
+    END ;
+
+canAdd <-- canAddTreinoAluno ( aa , tt , dd ) =
+    BEGIN
+        VAR alunoAtual , treinoAtual , statusAtual , profTreino , profAluno , treinoJaExiste IN
+            alunoAtual := aluno_i ( aa ) ;
+            treinoAtual := treino_i ( tt ) ;
+            statusAtual := alunoStatus_i ( aa ) ;
+            profTreino := treinoProf_i ( tt ) ;
+            profAluno := alunoProf_i ( aa ) ;
+            treinoJaExiste := treinoAluno_i ( tt , aa , dd ) ;
+
+            IF aa /= 99 & tt /= 99 & alunoAtual = TRUE & treinoAtual = TRUE & statusAtual = ativo &
+               profTreino = profAluno & treinoJaExiste = FALSE THEN
+                canAdd := TRUE
+            ELSE
+                canAdd := FALSE
+            END
+        END
+    END ;
+
+canAdd <-- canAddExercicioTreino ( ex , tt , ss , rp ) =
+    BEGIN
+        VAR treinoAtual , exercicioJaExiste , ss0 , rp0 , verificarTreino IN
+            treinoAtual := treino_i ( tt ) ;
+            exercicioJaExiste := FALSE ;
+
+            ss0 := 0 ;
+            WHILE ss0 <= 5 & exercicioJaExiste = FALSE DO
+                rp0 := 0 ;
+                WHILE rp0 <= 20 & exercicioJaExiste = FALSE DO
+                    verificarTreino := treinoExercicio_i ( tt , ex , ss0 , rp0 ) ;
+                    IF verificarTreino = TRUE THEN
+                        exercicioJaExiste := TRUE
+                    END ;
+                    rp0 := rp0 + 1
+                INVARIANT
+                    rp0 : NAT & rp0 <= 21
+                VARIANT
+                    21 - rp0
+                END ;
+                ss0 := ss0 + 1
+            INVARIANT
+                ss0 : NAT & ss0 <= 6
+            VARIANT
+                6 - ss0
+            END ;
+
+            IF ex /= 99 & tt /= 99 & treinoAtual = TRUE & ss >= 0 & ss <= 5 & rp >= 0 & rp <= 20 & exercicioJaExiste = FALSE THEN
+                canAdd := TRUE
+            ELSE
+                canAdd := FALSE
+            END
+        END
+    END ;
+
+canDel <-- canDeleteTreinoAluno ( tt , aa , dd ) =
+    BEGIN
+        VAR treinoAtual , alunoAtual , treinoExiste IN
+            treinoAtual := treino_i ( tt ) ;
+            alunoAtual := aluno_i ( aa ) ;
+            treinoExiste := treinoAluno_i ( tt , aa , dd ) ;
+
+            IF tt /= 99 & aa /= 99 & treinoAtual = TRUE & alunoAtual = TRUE & treinoExiste = TRUE THEN
+                canDel := TRUE
+            ELSE
+                canDel := FALSE
+            END
+        END
+    END ;
+
+canDel <-- canDeleteExercicioTreino ( tt , ex , ss , rp ) =
+    BEGIN
+        VAR treinoAtual , exercicioAtual , exercicioExiste IN
+            treinoAtual := treino_i ( tt ) ;
+            exercicioAtual := exercicio_i ( ex ) ;
+            exercicioExiste := treinoExercicio_i ( tt , ex , ss , rp ) ;
+
+            IF tt /= 99 & ex /= 99 & treinoAtual = TRUE & exercicioAtual = TRUE & ss >= 0 & ss <= 5 & rp >= 0 & rp <= 20 & exercicioExiste = TRUE THEN
+                canDel := TRUE
+            ELSE
+                canDel := FALSE
+            END
+        END
+    END ;
+
+canUpdate <-- canUpdateAlunoProf ( aa , pp ) =
+    BEGIN
+        VAR alunoAtual , profAtual , statusAtual , profAlunoAtual IN
+            alunoAtual := aluno_i ( aa ) ;
+            profAtual := prof_i ( pp ) ;
+            statusAtual := alunoStatus_i ( aa ) ;
+            profAlunoAtual := alunoProf_i ( aa ) ;
+
+            IF aa /= 99 & pp /= 99 & alunoAtual = TRUE & profAtual = TRUE & statusAtual = ativo & profAlunoAtual /= pp THEN
+                canUpdate := TRUE
+            ELSE
+                canUpdate := FALSE
+            END
+        END
+    END ;
+
+canUpdate <-- canUpdatePagamento ( aa ) =
+    BEGIN
+        VAR alunoAtual , statusAtual IN
+            alunoAtual := aluno_i ( aa ) ;
+            statusAtual := alunoStatus_i ( aa ) ;
+
+            IF aa /= 99 & alunoAtual = TRUE & statusAtual = inativo THEN
+                canUpdate := TRUE
+            ELSE
+                canUpdate := FALSE
+            END
+        END
+    END ;
+
+canSet <-- canSetAlunoInativo ( aa ) =
+    BEGIN
+        VAR alunoAtual , statusAtual IN
+            alunoAtual := aluno_i ( aa ) ;
+            statusAtual := alunoStatus_i ( aa ) ;
+
+            IF aa /= 99 & alunoAtual = TRUE & statusAtual = ativo THEN
+                canSet := TRUE
+            ELSE
+                canSet := FALSE
+            END
+        END
+    END ;
+
+canUpdate <-- canUpdateDiaTreino ( tt , aa , ddAnterior , ddNovo ) =
+    BEGIN
+        VAR treinoAtual , alunoAtual , statusAtual , treinoExiste IN
+            treinoAtual := treino_i ( tt ) ;
+            alunoAtual := aluno_i ( aa ) ;
+            statusAtual := alunoStatus_i ( aa ) ;
+            treinoExiste := treinoAluno_i ( tt , aa , ddAnterior ) ;
+
+            IF tt /= 99 & aa /= 99 & treinoAtual = TRUE & alunoAtual = TRUE & statusAtual = ativo &
+               ddAnterior /= ddNovo & treinoExiste = TRUE THEN
+                canUpdate := TRUE
+            ELSE
+                canUpdate := FALSE
+            END
+        END
+    END ;
+
+canUpdate <-- canUpdateExercicioTreino ( tt , ex , newSs , newRp ) =
+    BEGIN
+        VAR treinoAtual , exercicioAtual , exercicioJaExiste , ss0 , rp0 , verificarTreinoExercicio IN
+            treinoAtual := treino_i ( tt ) ;
+            exercicioAtual := exercicio_i ( ex ) ;
+            exercicioJaExiste := FALSE ;
+
+            ss0 := 0 ;
+            WHILE ss0 <= 5 & exercicioJaExiste = FALSE DO
+                rp0 := 0 ;
+                WHILE rp0 <= 20 & exercicioJaExiste = FALSE DO
+                    verificarTreinoExercicio := treinoExercicio_i ( tt , ex , ss0 , rp0 ) ;
+                    IF verificarTreinoExercicio = TRUE THEN
+                        exercicioJaExiste := TRUE
+                    END ;
+                    rp0 := rp0 + 1
+                INVARIANT
+                    rp0 : NAT & rp0 <= 21
+                VARIANT
+                    21 - rp0
+                END ;
+                ss0 := ss0 + 1
+            INVARIANT
+                ss0 : NAT & ss0 <= 6
+            VARIANT
+                6 - ss0
+            END ;
+
+            IF tt /= 99 & ex /= 99 & treinoAtual = TRUE & exercicioAtual = TRUE & newSs >= 0 & newSs <= 5 & newRp >= 0 & newRp <= 20 & exercicioJaExiste = TRUE THEN
+                canUpdate := TRUE
+            ELSE
+                canUpdate := FALSE
+            END
+        END
+    END ;
+
+canCheck <-- canCheckIn ( aa ) =
+    BEGIN
+        VAR alunoAtual , statusAtual , presenteAtual IN
+            alunoAtual := aluno_i ( aa ) ;
+            statusAtual := alunoStatus_i ( aa ) ;
+            presenteAtual := alunoPresente_i ( aa ) ;
+
+            IF aa /= 99 & alunoAtual = TRUE & statusAtual = ativo & presenteAtual = ausente THEN
+                canCheck := TRUE
+            ELSE
+                canCheck := FALSE
+            END
+        END
+    END ;
+
+canCheck <-- canCheckOut ( aa ) =
+    BEGIN
+        VAR alunoAtual , presenteAtual IN
+            alunoAtual := aluno_i ( aa ) ;
+            presenteAtual := alunoPresente_i ( aa ) ;
+
+            IF aa /= 99 & alunoAtual = TRUE & presenteAtual = presente THEN
+                canCheck := TRUE
+            ELSE
+                canCheck := FALSE
+            END
+        END
+    END ;
+
+canConsult <-- canQuantidadeAlunos =
+    BEGIN
+        VAR ii , temAlunos , verificarAluno IN
+            temAlunos := FALSE ;
+            ii := 0 ;
+
+            WHILE ii < 99 & temAlunos = FALSE DO
+                verificarAluno := aluno_i ( ii ) ;
+                IF verificarAluno = TRUE THEN
+                    temAlunos := TRUE
+                END ;
+                ii := ii + 1
+            INVARIANT
+                ii : NAT & ii <= 99
+            VARIANT
+                99 - ii
+            END ;
+
+            canConsult := temAlunos
+        END
+    END ;
+
+canConsult <-- canQuantidadeProfessores =
+    BEGIN
+        VAR ii , temProfs , verificarProf IN
+            temProfs := FALSE ;
+            ii := 0 ;
+
+            WHILE ii < 99 & temProfs = FALSE DO
+                verificarProf := prof_i ( ii ) ;
+                IF verificarProf = TRUE THEN
+                    temProfs := TRUE
+                END ;
+                ii := ii + 1
+            INVARIANT
+                ii : NAT & ii <= 99
+            VARIANT
+                99 - ii
+            END ;
+
+            canConsult := temProfs
+        END
+    END ;
+
+canConsult <-- canAlunosPorProf ( pp ) =
+    BEGIN
+        VAR profAtual , ii , temAlunos , verificarAlunoProf , verificarAluno IN
+            profAtual := prof_i ( pp ) ;
+            temAlunos := FALSE ;
+            ii := 0 ;
+
+            WHILE ii < 99 & temAlunos = FALSE DO
+                verificarAlunoProf := alunoProf_i ( ii ) ;
+                verificarAluno := aluno_i ( ii ) ;
+                IF verificarAlunoProf = pp & verificarAluno = TRUE THEN
+                    temAlunos := TRUE
+                END ;
+                ii := ii + 1
+            INVARIANT
+                ii : NAT & ii <= 99
+            VARIANT
+                99 - ii
+            END ;
+
+            IF pp /= 99 & profAtual = TRUE & temAlunos = TRUE THEN
+                canConsult := TRUE
+            ELSE
+                canConsult := FALSE
+            END
+        END
+    END ;
+
+canConsult <-- canAlunoDeProfessor ( aa , pp ) =
+    BEGIN
+        VAR alunoAtual , profAtual IN
+            alunoAtual := aluno_i ( aa ) ;
+            profAtual := prof_i ( pp ) ;
+
+            IF aa /= 99 & pp /= 99 & alunoAtual = TRUE & profAtual = TRUE THEN
+                canConsult := TRUE
+            ELSE
+                canConsult := FALSE
+            END
+        END
+    END
+
+/*-------------------------------- CONSULTAS ------------------------------*/
+
+END

@@ -31,16 +31,45 @@ alunoStatus,
 alunoPresente
 
 INVARIANT
-aluno <: ALUNO
-& prof <: PROF
-& treino <: TREINO
-& exercicio <: EXERCICIO
-& alunoProf : aluno --> prof
-& alunoStatus : aluno --> STATUS
-& treinoProf : treino --> prof
- & treinoAluno : treino <-> (aluno * DIA)
- & treinoExercicio : treino <-> (exercicio * SERIES * REPETICOES)
-& alunoPresente : aluno --> PRESENTE
+    aluno <: ALUNO
+    & prof <: PROF
+    & treino <: TREINO
+    & exercicio <: EXERCICIO
+    & alunoProf : aluno --> prof
+    & alunoStatus : aluno --> STATUS 
+    & treinoProf : treino --> prof
+    & treinoAluno : treino <-> aluno * DIA 
+    & treinoExercicio : treino <-> exercicio * SERIES * REPETICOES 
+    & alunoPresente : aluno --> PRESENTE
+//    & alunoPlano : aluno --> PLANO
+//    & alunoVencimento : aluno --> NAT
+//    & diaAtual : NAT
+
+    & alunoPresente~[{presente}] /\ alunoStatus~[{inativo}] = {}
+
+    // Alunos ativos devem ter vencimento futuro
+//    & !(aa).(aa : aluno & alunoStatus(aa) = ativo => alunoVencimento(aa) >= diaAtual)
+
+    // Se dois alunos diferentes possuem exatamente o mesmo treino, então esses alunos devem estar associados ao mesmo professor.
+    & !(al1, al2, dd1, dd2) . 
+    (al1:aluno & al2 : aluno & dd1:DIA & dd2:DIA & al1 /= al2 & 
+    (al1,dd1) : ran(treinoAluno) & 
+    (al2,dd2):ran(treinoAluno) & 
+    treinoAluno~[{al1|->dd1}] = treinoAluno~[{al2|->dd2}]  
+    => alunoProf[{al1}] = alunoProf[{al2}])
+
+    // O professor associado ao treino tt deve ser o mesmo professor associado ao aluno aa
+    & !(tt, aa, dd).(tt: treino & aa : aluno & dd: DIA 
+    & (tt |-> (aa, dd)) : treinoAluno =>
+    treinoProf(tt) = alunoProf(aa))
+    
+    // Um exercício só pode estar presente no máximo uma vez em cada treino
+    & !(tt, ex, ss1, ss2, rp1, rp2).(tt: treino & ex: exercicio & 
+       ss1: SERIES & ss2: SERIES & 
+       rp1: REPETICOES & rp2: REPETICOES & 
+       (tt |-> (ex, ss1, rp1)) : treinoExercicio & 
+       (tt |-> (ex, ss2, rp2)) : treinoExercicio => 
+       (ss1 = ss2 & rp1 = rp2))
 
 INITIALISATION
 alunoProf:={}
